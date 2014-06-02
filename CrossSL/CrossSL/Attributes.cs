@@ -13,23 +13,26 @@ namespace CrossSL
 
     internal class xSLVersion
     {
-        internal static string[] GLSL =
+        internal static string[][] VIDs =
         {
-            "110",
-            "120",
-            "130",
-            "140",
-            "150",
-            "330",
-            "400",
-            "420",
-            "430",
-            "440"
-        };
+            new[]
+            {
+                "110",
+                "120",
+                "130",
+                "140",
+                "150",
+                "330",
+                "400",
+                "420",
+                "430",
+                "440"
+            },
 
-        internal static string[] GLSLES =
-        {
-            "100"
+            new[]
+            {
+                "100"
+            }
         };
     }
 
@@ -47,6 +50,14 @@ namespace CrossSL
         Low,
         Medium,
         High
+    }
+
+    internal enum xSLVariableType
+    {
+        xSLAttributeAttribute,
+        xSLVaryingAttribute,
+        xSLUniformAttribute,
+        xSLConstAttribute
     }
 
     // ReSharper restore InconsistentNaming
