@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using Fusee.Math;
 
 namespace XCompTests
@@ -220,7 +221,10 @@ namespace XCompTests
         }
 
         // datatypes
-        protected struct sampler2D { }
+        [xSLDataType]
+        protected struct sampler2D {
+
+        }
     }
 
     public sealed class xSL<TShader>

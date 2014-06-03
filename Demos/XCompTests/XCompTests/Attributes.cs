@@ -5,23 +5,36 @@ namespace XCompTests
     // ReSharper disable InconsistentNaming
     // ReSharper disable UnusedParameter.Local
 
+    [AttributeUsage(AttributeTargets.Struct, AllowMultiple = false)]
+    public class xSLDataTypeAttribute : Attribute
+    {
+        // dummy implementation
+    }
+
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,
-        AllowMultiple = true)]
+        AllowMultiple = false)]
     public class xSLAttributeAttribute : Attribute
     {
         // dummy implementation
     }
 
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,
-        AllowMultiple = true)]
+        AllowMultiple = false)]
     public class xSLVaryingAttribute : Attribute
     {
         // dummy implementation
     }
 
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,
-        AllowMultiple = true)]
+        AllowMultiple = false)]
     public class xSLUniformAttribute : Attribute
+    {
+        // dummy implementation
+    }
+
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,
+        AllowMultiple = false)]
+    public class xSLConstantAttribute : Attribute
     {
         // dummy implementation
     }

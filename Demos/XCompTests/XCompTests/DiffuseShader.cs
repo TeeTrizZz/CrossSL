@@ -32,6 +32,11 @@ namespace XCompTests
 
         [xSLUniform] internal float4x4 FuseeV;
 
+        public DiffuseShader()
+        {
+            var x = 5;
+        }
+
         // Vertex Shader
         internal override void VertexShader()
         {
