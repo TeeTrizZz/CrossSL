@@ -8,7 +8,10 @@ namespace XCompTests
     [AttributeUsage(AttributeTargets.Struct, AllowMultiple = false)]
     public class xSLDataTypeAttribute : Attribute
     {
-        // dummy implementation
+        public xSLDataTypeAttribute(string GLSL)
+        {
+            // dummy implementation            
+        }
     }
 
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,

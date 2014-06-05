@@ -221,7 +221,7 @@ namespace XCompTests
         }
 
         // datatypes
-        [xSLDataType]
+        [xSLDataType("sampler2D")]
         protected struct sampler2D {
 
         }

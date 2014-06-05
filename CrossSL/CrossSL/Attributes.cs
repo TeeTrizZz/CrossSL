@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Fusee.Math;
@@ -65,31 +66,34 @@ namespace CrossSL
 
     internal static class xSLDataType
     {
-        internal static Type[] Types =
+        internal static Dictionary<Type, string> Types = new Dictionary<Type, string>
         {
-            typeof (int),
-            typeof (float),
-            typeof (float2),
-            typeof (float3),
-            typeof (float4),
-            typeof (float4x4)
+            {typeof (int), "int"},
+            {typeof (float), "float"},
+            {typeof (float2), "vec2"},
+            {typeof (float3), "vec3"},
+            {typeof (float4), "vec4"},
+            {typeof (float4x4), "mat4"},
         };
 
         /// <summary>
         ///     Some data types have to be resolved by reflection at runtime, as they are
         ///     protected and nested into the <see cref="xSLShader" /> class. They are
-        ///     marked with the <see cref="XCompTests.xSLDataTypeAttribute" /> attribute.
+        ///     marked with the <see cref="XCompTests.xSLDataTypeAttribute" /> attribute,
+        ///     which also contains their GLSL equivalent as the constructor argument.
         /// </summary>
         internal static void UpdateTypes()
         {
-            var typeList = Types.ToList();
-
             var typeAttr = typeof (xSLDataTypeAttribute);
             var nestedTypes = typeof (xSLShader).GetNestedTypes(BindingFlags.NonPublic);
-            var dataTypes = nestedTypes.Where(type => Attribute.GetCustomAttribute(type, typeAttr) != null);
+            var dataTypes = nestedTypes.Where(type => type.GetCustomAttribute(typeAttr) != null);
 
-            typeList.AddRange(dataTypes);
-            Types = typeList.ToArray();            
+            foreach (var type in dataTypes)
+            {
+                var attrData = CustomAttributeData.GetCustomAttributes(type);
+                var typeData = attrData.First(attr => attr.AttributeType == typeAttr);
+                Types.Add(type, typeData.ConstructorArguments[0].Value.ToString());
+            }
         }
     }
 
