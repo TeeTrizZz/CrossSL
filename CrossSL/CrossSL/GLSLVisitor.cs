@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.ILAst;
-using ICSharpCode.NRefactory;
 using ICSharpCode.NRefactory.CSharp;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.CompilerServices.SymbolWriter;
 
 namespace CrossSL
 {
@@ -25,12 +25,12 @@ namespace CrossSL
         /// </summary>
         public override StringBuilder VisitBlockStatement(BlockStatement blockStmt, int data)
         {
-            var result = new StringBuilder().NewLine().Open();
+            var result = new StringBuilder().NewLine().OBraces();
 
             foreach (var statement in blockStmt.Statements)
-                result.NewLine().Intend(1).Append(statement.AcceptVisitor(this, data));
+                result.NewLine().Intend().Append(statement.AcceptVisitor(this, data));
 
-            return result.NewLine().Close();
+            return result.NewLine().CBraces();
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace CrossSL
             VariableDeclarationStatement varDeclStmt, int data)
         {
             var result = new StringBuilder();
-           // var methodDef = varDeclStmt.
+
             var type = varDeclStmt.Type.AcceptVisitor(this, data);
             foreach (var varDecl in varDeclStmt.Variables)
                 result.Append(type).Space().Append(varDecl.AcceptVisitor(this, data)).Semicolon();
@@ -58,17 +58,8 @@ namespace CrossSL
 
             if (sysType == null || !xSLDataType.Types.ContainsKey(sysType))
             {
-                var parentNode = simpleType.GetParent<Statement>();
-                Instruction instrAtOffset = null;
-
-                if (parentNode != null)
-                {
-                    var ilRange = GetAnnotations<List<ILRange>>(parentNode).First();
-                    var instructions = DecContext.CurrentMethod.Body.Instructions;
-                    instrAtOffset = instructions.First(il => il.Offset == ilRange.From);
-                }
-
-                xSLHelper.WriteToConsole("    => ERROR: Type \"" + simpleType + "\" is unsupported", instrAtOffset);
+                var instr = GetInstructionFromStmt(simpleType.GetParent<Statement>());
+                xSLHelper.Error("Type \"" + simpleType + "\" is not supported", instr);
             }
             else
             {
@@ -107,7 +98,7 @@ namespace CrossSL
         {
             var result = assignmentExpr.Left.AcceptVisitor(this, data);
 
-            // operator assignment type
+            // assignment operator type mapping
             var opAssignment = new Dictionary<AssignmentOperatorType, string>
             {
                 {AssignmentOperatorType.Assign, ""},
@@ -125,6 +116,119 @@ namespace CrossSL
 
             result.Assign(opAssignment[assignmentExpr.Operator]);
             return result.Append(assignmentExpr.Right.AcceptVisitor(this, data));
+        }
+
+        /// <summary>
+        ///     Translates a binary operator expression, e.g. "a * b"
+        /// </summary>
+        public override StringBuilder VisitBinaryOperatorExpression(BinaryOperatorExpression binaryOpExpr, int data)
+        {
+            var result = new StringBuilder();
+
+            if (binaryOpExpr.Operator == BinaryOperatorType.Modulus)
+            {
+                var leftOp = binaryOpExpr.Left.AcceptVisitor(this, data).ToString();
+                var rightOp = binaryOpExpr.Right.AcceptVisitor(this, data).ToString();
+
+                result.Method("mod", leftOp, rightOp);
+            }
+            else
+            {
+                result.Append(binaryOpExpr.Left.AcceptVisitor(this, data)).OParent();
+
+                // binary operator type mapping
+                var opAssignment = new Dictionary<BinaryOperatorType, string>
+                {
+                    {BinaryOperatorType.Add, "+"},
+                    {BinaryOperatorType.BitwiseAnd, "&"},
+                    {BinaryOperatorType.BitwiseOr, "|"},
+                    {BinaryOperatorType.ConditionalAnd, "&&"},
+                    {BinaryOperatorType.ConditionalOr, "||"},
+                    {BinaryOperatorType.Divide, "/"},
+                    {BinaryOperatorType.Equality, "=="},
+                    {BinaryOperatorType.ExclusiveOr, "^"},
+                    {BinaryOperatorType.GreaterThan, ">"},
+                    {BinaryOperatorType.GreaterThanOrEqual, ">="},
+                    {BinaryOperatorType.InEquality, "!="},
+                    {BinaryOperatorType.LessThan, "<"},
+                    {BinaryOperatorType.LessThanOrEqual, "<="},
+                    {BinaryOperatorType.Multiply, "*"},
+                    {BinaryOperatorType.NullCoalescing, "??"},
+                    {BinaryOperatorType.ShiftLeft, "<<"},
+                    {BinaryOperatorType.ShiftRight, ">>"},
+                    {BinaryOperatorType.Subtract, "-"}
+                };
+
+                result.Assign(opAssignment[binaryOpExpr.Operator]);
+                result.Append(binaryOpExpr.Right.AcceptVisitor(this, data)).CParent();
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        ///     Translates a member reference, e.g. "_field"
+        /// </summary>
+        public override StringBuilder VisitMemberReferenceExpression(MemberReferenceExpression memberRefExpr, int data)
+        {
+            var result = new StringBuilder();
+
+            if (!(memberRefExpr.Target is ThisReferenceExpression))
+                result.Append(memberRefExpr.Target.AcceptVisitor(this, data)).Dot();
+
+            return result.Append(memberRefExpr.MemberName);
+        }
+
+        /// <summary>
+        ///     Translates an object creation expression, e.g. "new float4(...)"
+        /// </summary>
+        public override StringBuilder VisitObjectCreateExpression(ObjectCreateExpression objCreateExpr, int data)
+        {
+            var type = objCreateExpr.Type.AcceptVisitor(this, data);
+            var args = ArgJoin(objCreateExpr.Arguments);
+
+            return type.OParent().Append(args).CParent();
+        }
+
+        /// <summary>
+        ///     Translates a primitive type, e.g. "1f"
+        /// </summary>
+        public override StringBuilder VisitPrimitiveExpression(PrimitiveExpression primitiveExpr, int data)
+        {
+            var result = new StringBuilder();
+            var cultureInfo = CultureInfo.InvariantCulture.NumberFormat;
+
+            if (primitiveExpr.Value is double)
+            {
+                var dInstr = GetInstructionFromStmt(primitiveExpr.GetParent<Statement>());
+                xSLHelper.Warning("Type \"double\" is not supported. " +
+                                         "Value will be casted to type \"float\".", dInstr);
+            }
+
+            if (primitiveExpr.Value is float || primitiveExpr.Value is double)
+            {
+                var value = ((float) primitiveExpr.Value).ToString(cultureInfo);
+                if (!value.Contains(".")) value += ".0";
+
+                return result.Append(value).Append("f");
+            }
+
+            if (primitiveExpr.Value is uint)
+            {
+                var value = ((uint) primitiveExpr.Value).ToString(cultureInfo);
+                return result.Append(value).Append("u");
+            }
+
+            if (primitiveExpr.Value is bool)
+            {
+                var value = primitiveExpr.Value.ToString().ToLower();
+                return result.Append(value);
+            }
+
+            var instr = GetInstructionFromStmt(primitiveExpr.GetParent<Statement>());
+            xSLHelper.Error("Type \"double\" is not supported.", instr);
+
+            return result;
         }
     }
 }

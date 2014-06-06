@@ -47,7 +47,7 @@ namespace CrossSL
             if (methodCount <= 1 && method != null && method.IsVirtual) return true;
 
             var instr = (method != null) ? method.Body.Instructions[0] : null;
-            xSLHelper.WriteToConsole("    => ERROR: You didn't override method \"" + methodName + "\" properly", instr);
+            xSLHelper.Error("You didn't override method \"" + methodName + "\" properly", instr);
 
             return false;
         }
@@ -186,7 +186,7 @@ namespace CrossSL
                         if (declType != asmType) continue;
 
                         if (!isConst)
-                            xSLHelper.WriteToConsole("    => WARNING: Field \"" + fdDecl.Name + "\" is initialized" +
+                            xSLHelper.Warning("Field \"" + fdDecl.Name + "\" is initialized" +
                                                      " but not marked as const or [xSLConstant]", varInit);
 
                         foundValidContent = true;
@@ -202,8 +202,7 @@ namespace CrossSL
                         var propName = methDecl.Name.Remove(0, 4);
 
                         if (xSLHelper.ResolveRef(declType) == typeof (xSLShader))
-                            xSLHelper.WriteToConsole(
-                                "    => ERROR: Illegal use of \"" + propName + "\" in a constructor", varInit);
+                            xSLHelper.Error("Illegal use of \"" + propName + "\" in a constructor", varInit);
                         else if (declType == asmType)
                         {
                             var propDecl = asmType.Properties.First(prop => prop.Name == propName);
@@ -212,7 +211,7 @@ namespace CrossSL
                                     xSLHelper.ResolveRef(attrType.AttributeType) == typeof (xSLConstantAttribute));
 
                             if (!isConst)
-                                xSLHelper.WriteToConsole("    => WARNING: Property \"" + propDecl.Name + "\" is" +
+                                xSLHelper.Warning("Property \"" + propDecl.Name + "\" is" +
                                                          "initialized but not marked as const or [xSLConstant]", varInit);
 
                             foundValidContent = true;
@@ -222,7 +221,7 @@ namespace CrossSL
                     if (!foundValidContent)
                     {
                         var instr = ctorMethod.Body.Instructions[0];
-                        xSLHelper.WriteToConsole("    => WARNING: Found a constructor with no valid content", instr);
+                        xSLHelper.Warning("Found a constructor with no valid content", instr);
                     }
                 }
 

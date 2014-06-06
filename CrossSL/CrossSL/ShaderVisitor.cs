@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Ast.Transforms;
-using ICSharpCode.NRefactory;
+using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.PatternMatching;
-using Mono.Cecil;
+using Mono.Cecil.Cil;
 using Attribute = ICSharpCode.NRefactory.CSharp.Attribute;
 
 namespace CrossSL
@@ -27,11 +27,11 @@ namespace CrossSL
             transform1.Run(methodBody);
 
             // replaces every "!(x == 5)" by "(x != 5)"
-            var transform2 = (IAstTransform)new PushNegation();
+            var transform2 = (IAstTransform) new PushNegation();
             transform2.Run(methodBody);
 
             // replaces every "var x; x = 5;" by "var x = 5;"
-            var transform3 = (IAstTransform)new DeclareVariables(decContext);
+            var transform3 = (IAstTransform) new DeclareVariables(decContext);
             transform3.Run(methodBody);
         }
 
@@ -53,10 +53,26 @@ namespace CrossSL
 
                 default:
                     throw new ArgumentException("Statement type " + stmt.GetType() + " not supported.");
-            }         
+            }
         }
 
-        public StringBuilder VisitAnonymousMethodExpression(AnonymousMethodExpression anonymousMethodExpression, int data)
+        protected Instruction GetInstructionFromStmt(Statement stmt)
+        {
+            if (stmt == null) return null;
+
+            var ilRange = GetAnnotations<List<ILRange>>(stmt).First();
+            var instructions = DecContext.CurrentMethod.Body.Instructions;
+            return instructions.First(il => il.Offset == ilRange.From);
+        }
+
+        protected StringBuilder ArgJoin(ICollection<Expression> args)
+        {
+            var accArgs = args.Select(arg => arg.AcceptVisitor(this, 0).ToString());
+            return new StringBuilder(String.Join(", ", accArgs));
+        }
+
+        public StringBuilder VisitAnonymousMethodExpression(AnonymousMethodExpression anonymousMethodExpression,
+            int data)
         {
             throw new NotImplementedException();
         }
@@ -71,7 +87,8 @@ namespace CrossSL
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitArrayInitializerExpression(ArrayInitializerExpression arrayInitializerExpression, int data)
+        public StringBuilder VisitArrayInitializerExpression(ArrayInitializerExpression arrayInitializerExpression,
+            int data)
         {
             throw new NotImplementedException();
         }
@@ -88,10 +105,7 @@ namespace CrossSL
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitBinaryOperatorExpression(BinaryOperatorExpression binaryOperatorExpression, int data)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract StringBuilder VisitBinaryOperatorExpression(BinaryOperatorExpression binaryOpExpr, int data);
 
         public StringBuilder VisitCastExpression(CastExpression castExpression, int data)
         {
@@ -143,10 +157,7 @@ namespace CrossSL
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitMemberReferenceExpression(MemberReferenceExpression memberReferenceExpression, int data)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract StringBuilder VisitMemberReferenceExpression(MemberReferenceExpression memberRefExpr, int data);
 
         public StringBuilder VisitNamedArgumentExpression(NamedArgumentExpression namedArgumentExpression, int data)
         {
@@ -163,12 +174,10 @@ namespace CrossSL
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitObjectCreateExpression(ObjectCreateExpression objectCreateExpression, int data)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract StringBuilder VisitObjectCreateExpression(ObjectCreateExpression objCreateExpr, int data);
 
-        public StringBuilder VisitAnonymousTypeCreateExpression(AnonymousTypeCreateExpression anonymousTypeCreateExpression, int data)
+        public StringBuilder VisitAnonymousTypeCreateExpression(
+            AnonymousTypeCreateExpression anonymousTypeCreateExpression, int data)
         {
             throw new NotImplementedException();
         }
@@ -178,15 +187,13 @@ namespace CrossSL
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitPointerReferenceExpression(PointerReferenceExpression pointerReferenceExpression, int data)
+        public StringBuilder VisitPointerReferenceExpression(PointerReferenceExpression pointerReferenceExpression,
+            int data)
         {
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitPrimitiveExpression(PrimitiveExpression primitiveExpression, int data)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract StringBuilder VisitPrimitiveExpression(PrimitiveExpression primitiveExpr, int data);
 
         public StringBuilder VisitSizeOfExpression(SizeOfExpression sizeOfExpression, int data)
         {
@@ -443,7 +450,7 @@ namespace CrossSL
         }
 
         public abstract StringBuilder VisitVariableDeclarationStatement(
-            VariableDeclarationStatement variableDeclarationStatement, int data);
+            VariableDeclarationStatement varDeclStmt, int data);
 
         public StringBuilder VisitWhileStatement(WhileStatement whileStatement, int data)
         {

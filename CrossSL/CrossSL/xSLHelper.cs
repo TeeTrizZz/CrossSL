@@ -14,7 +14,12 @@ namespace CrossSL
         /// <summary>
         ///     Indicates if verbose mode is activ (i.e. if a .pdb file was found).
         /// </summary>
-        internal static bool Verbose;
+        internal static bool Verbose { get; set; }
+
+        /// <summary>
+        ///     Indicates if an error was raised and the compiler has to abort.
+        /// </summary>
+        internal static bool Abort { get; private set; }
 
         /// <summary>
         ///     Resolves the type of a given TypeReference via Mono.Cecil and System.Reflection.
@@ -29,16 +34,16 @@ namespace CrossSL
         }
 
         /// <summary>
-        ///     Writes a message and  to console.
+        ///     Prints a message to the console.
         /// </summary>
         /// <param name="msg">The message.</param>
-        /// <param name="findSeq">The instruction.</param>
+        /// <param name="findSeq">The corresponding instruction.</param>
         /// <remarks>
         ///     Some instructions have a SequencePoint which points to the specific line in
         ///     the source file. If the given line has no SequencePoint, this method will step
         ///     backwards until a SequencePoint is found (only if verbose mode is active).
         /// </remarks>
-        internal static void WriteToConsole(string msg, Instruction findSeq)
+        private static void WriteToConsole(string msg, Instruction findSeq)
         {
             Console.Write(msg);
 
@@ -57,6 +62,30 @@ namespace CrossSL
             }
 
             Console.WriteLine(".");
+        }
+
+        /// <summary>
+        ///     Prints a warning to the console.
+        /// </summary>
+        /// <param name="msg">The warning message.</param>
+        /// <param name="findSeq">The corresponding instruction.</param>
+        internal static void Warning(string msg, Instruction findSeq)
+        {
+            msg = "    => WARNING: " + msg;
+            WriteToConsole(msg, findSeq);
+        }
+
+        /// <summary>
+        ///     Prints an error to the console and sets <see cref="Abort"/> to [true].
+        /// </summary>
+        /// <param name="msg">The error message.</param>
+        /// <param name="findSeq">The corresponding instruction.</param>
+        internal static void Error(string msg, Instruction findSeq)
+        {
+            msg = "    => ERROR: " + msg;
+            WriteToConsole(msg, findSeq);
+
+            Abort = true;
         }
     }
 }
