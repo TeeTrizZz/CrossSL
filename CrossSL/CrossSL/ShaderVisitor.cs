@@ -7,7 +7,9 @@ using ICSharpCode.Decompiler.Ast.Transforms;
 using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.PatternMatching;
+using Mono.Cecil;
 using Mono.Cecil.Cil;
+
 using Attribute = ICSharpCode.NRefactory.CSharp.Attribute;
 
 namespace CrossSL
@@ -16,7 +18,8 @@ namespace CrossSL
     {
         protected DecompilerContext DecContext;
 
-        public string Result { get; protected set; }
+        public StringBuilder Result { get; protected set; }
+        public List<MethodDefinition> ReferencedMethods { get; protected set; }
 
         internal ShaderVisitor(AstNode methodBody, DecompilerContext decContext)
         {
@@ -33,6 +36,8 @@ namespace CrossSL
             // replaces every "var x; x = 5;" by "var x = 5;"
             var transform3 = (IAstTransform) new DeclareVariables(decContext);
             transform3.Run(methodBody);
+
+            ReferencedMethods = new List<MethodDefinition>();
         }
 
         protected T GetAnnotations<T>(Statement stmt) where T : class
@@ -40,17 +45,18 @@ namespace CrossSL
             var typeRoleMap = new Dictionary<Type, int>
             {
                 {typeof (ExpressionStatement), 0},
-                {typeof (VariableDeclarationStatement), 1}
+                {typeof (VariableDeclarationStatement), 1},
+                {typeof (IfElseStatement), 2}
             };
 
             switch (typeRoleMap[stmt.GetType()])
             {
                 case 0:
                     return stmt.GetChildByRole(Roles.Expression).Annotation<T>();
-
                 case 1:
                     return stmt.GetChildByRole(Roles.Variable).Annotation<T>();
-
+                case 2:
+                    return stmt.GetChildByRole(Roles.Condition).Annotation<T>();
                 default:
                     throw new ArgumentException("Statement type " + stmt.GetType() + " not supported.");
             }
@@ -65,10 +71,27 @@ namespace CrossSL
             return instructions.First(il => il.Offset == ilRange.From);
         }
 
-        protected StringBuilder ArgJoin(ICollection<Expression> args)
+        protected int GetLineNmbrFromStmt(Statement stmt)
+        {
+            var seqPoint = GetInstructionFromStmt(stmt).SequencePoint;
+            return (seqPoint == null) ? 0 : seqPoint.StartLine;
+        }
+
+        protected StringBuilder JoinArgs(ICollection<Expression> args)
         {
             var accArgs = args.Select(arg => arg.AcceptVisitor(this, 0).ToString());
             return new StringBuilder(String.Join(", ", accArgs));
+        }
+
+        protected string MapDataTypeIfValid(AstType node, Type type)
+        {
+            if (type != null && xSLDataType.Types.ContainsKey(type))
+                return xSLDataType.Types[type];
+
+            var instr = GetInstructionFromStmt(node.GetParent<Statement>());
+            xSLHelper.Error("Type \"" + type + "\" is not supported", instr);
+
+            return null;
         }
 
         public StringBuilder VisitAnonymousMethodExpression(AnonymousMethodExpression anonymousMethodExpression,
@@ -100,10 +123,7 @@ namespace CrossSL
 
         public abstract StringBuilder VisitAssignmentExpression(AssignmentExpression assignmentExpr, int data);
 
-        public StringBuilder VisitBaseReferenceExpression(BaseReferenceExpression baseReferenceExpression, int data)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract StringBuilder VisitBaseReferenceExpression(BaseReferenceExpression baseRefExpr, int data);
 
         public abstract StringBuilder VisitBinaryOperatorExpression(BinaryOperatorExpression binaryOpExpr, int data);
 
@@ -127,25 +147,16 @@ namespace CrossSL
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitDirectionExpression(DirectionExpression directionExpression, int data)
-        {
-            throw new NotImplementedException();
-        }
-
-        public StringBuilder VisitIdentifierExpression(IdentifierExpression identifierExpression, int data)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract StringBuilder VisitDirectionExpression(DirectionExpression directionExpr, int data);
+        
+        public abstract StringBuilder VisitIdentifierExpression(IdentifierExpression identifierExpr, int data);
 
         public StringBuilder VisitIndexerExpression(IndexerExpression indexerExpression, int data)
         {
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitInvocationExpression(InvocationExpression invocationExpression, int data)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract StringBuilder VisitInvocationExpression(InvocationExpression invocationExpr, int data);
 
         public StringBuilder VisitIsExpression(IsExpression isExpression, int data)
         {
@@ -220,10 +231,7 @@ namespace CrossSL
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitUnaryOperatorExpression(UnaryOperatorExpression unaryOperatorExpression, int data)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract StringBuilder VisitUnaryOperatorExpression(UnaryOperatorExpression unaryOpExpr, int data);
 
         public StringBuilder VisitUncheckedExpression(UncheckedExpression uncheckedExpression, int data)
         {
@@ -384,10 +392,7 @@ namespace CrossSL
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitIfElseStatement(IfElseStatement ifElseStatement, int data)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract StringBuilder VisitIfElseStatement(IfElseStatement ifElseStmt, int data);
 
         public StringBuilder VisitLabelStatement(LabelStatement labelStatement, int data)
         {
@@ -399,10 +404,7 @@ namespace CrossSL
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitReturnStatement(ReturnStatement returnStatement, int data)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract StringBuilder VisitReturnStatement(ReturnStatement returnStmt, int data);
 
         public StringBuilder VisitSwitchStatement(SwitchStatement switchStatement, int data)
         {
@@ -566,10 +568,7 @@ namespace CrossSL
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitPrimitiveType(PrimitiveType primitiveType, int data)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract StringBuilder VisitPrimitiveType(PrimitiveType primitiveType, int data);
 
         public StringBuilder VisitComment(Comment comment, int data)
         {

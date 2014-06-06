@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
+using ICSharpCode.NRefactory.CSharp;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Collections.Generic;
@@ -25,12 +28,12 @@ namespace CrossSL
         ///     Resolves the type of a given TypeReference via Mono.Cecil and System.Reflection.
         /// </summary>
         /// <param name="typeRef">The type reference to resolve.</param>
-        /// <returns>The resolved type.</returns>
+        /// <returns>The resolved type or <see cref="System.Object"/> if type is unknown.</returns>
         internal static Type ResolveRef(TypeReference typeRef)
         {
             var typeDef = typeRef.Resolve();
             var typeName = Assembly.CreateQualifiedName(typeDef.Module.Assembly.FullName, typeDef.FullName);
-            return Type.GetType(typeName.Replace('/', '+'));
+            return Type.GetType(typeName.Replace('/', '+')) ?? typeof(Object);
         }
 
         /// <summary>

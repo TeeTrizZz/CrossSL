@@ -2,18 +2,26 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Ast;
-using ICSharpCode.NRefactory.CSharp;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Pdb;
+using Mono.Collections.Generic;
 using XCompTests;
 
 namespace CrossSL
 {
     internal class Program
     {
+        public struct FunctionDesc
+        {
+            public MethodDefinition MethodDef;
+            public StringBuilder Signature;
+            public StringBuilder Body;
+        }
+
         public struct VariableDesc
         {
             public FieldDefinition FieldDef;
@@ -54,7 +62,9 @@ namespace CrossSL
 
         private static void Main(string[] args)
         {
+            // update available data types & co.
             xSLDataType.UpdateTypes();
+            xSLMathMapping.UpdateTypes();
 
             //var inputPath = @"..\..\..\Test\XCompTests.exe";
             const string inputPath =
@@ -78,7 +88,7 @@ namespace CrossSL
                 : "No .pdb file found. Extended debugging has been disabled.\n");
 
             // read assembly (and symbols) with Mono.Cecil
-            var readParams = new ReaderParameters { ReadSymbols = xSLHelper.Verbose };
+            var readParams = new ReaderParameters {ReadSymbols = xSLHelper.Verbose};
             var asm = AssemblyDefinition.ReadAssembly(inputPath, readParams);
 
             // find all types with xSLShader as base type
@@ -187,7 +197,7 @@ namespace CrossSL
 
                         if (!isConst)
                             xSLHelper.Warning("Field \"" + fdDecl.Name + "\" is initialized" +
-                                                     " but not marked as const or [xSLConstant]", varInit);
+                                              " but not marked as const or [xSLConstant]", varInit);
 
                         foundValidContent = true;
                     }
@@ -212,7 +222,7 @@ namespace CrossSL
 
                             if (!isConst)
                                 xSLHelper.Warning("Property \"" + propDecl.Name + "\" is" +
-                                                         "initialized but not marked as const or [xSLConstant]", varInit);
+                                                  "initialized but not marked as const or [xSLConstant]", varInit);
 
                             foundValidContent = true;
                         }
@@ -256,14 +266,14 @@ namespace CrossSL
                         // resolve data type of variable
                         var fdType = xSLHelper.ResolveRef(asmField.FieldType);
 
-                        if (fdType == null || !xSLDataType.Types.ContainsKey(fdType))
+                        if (!xSLDataType.Types.ContainsKey(fdType))
                         {
-                            var strAdd = (fdType != null)
+                            var strAdd = (fdType != typeof (Object))
                                 ? " type \"" + fdType.Name + "\" "
                                 : " a type ";
 
                             Console.WriteLine("    => ERROR: Field \"" + asmField.Name +
-                                              "\" uses" + strAdd + "which is not supported.");
+                                              "\" is of" + strAdd + "which is not supported.");
                         }
 
                         varDesc.DataType = fdType;
@@ -291,14 +301,14 @@ namespace CrossSL
                         // resolve data type of variable
                         var prType = xSLHelper.ResolveRef(asmProp.PropertyType);
 
-                        if (prType == null || !xSLDataType.Types.ContainsKey(prType))
+                        if (!xSLDataType.Types.ContainsKey(prType))
                         {
-                            var strAdd = (prType != null)
+                            var strAdd = (prType != typeof (Object))
                                 ? " type \"" + prType.Name + "\" "
                                 : " a type ";
 
                             Console.WriteLine("    => ERROR: Field \"" + asmProp.Name +
-                                              "\" uses" + strAdd + "which is not supported.");
+                                              "\" is of" + strAdd + "which is not supported.");
                         }
 
                         var varDesc = new VariableDesc {PropDef = asmProp, DataType = prType, Attribute = prAttr};
@@ -309,20 +319,102 @@ namespace CrossSL
                                           "\" is neither a constant nor has a valid attribute.");
                 }
 
-                // translate both main methods
+                // translate main and depending methods
                 Console.WriteLine("\n  3. Translating...");
 
-                Translate(vertexMain);
-                Translate(fragmentMain);
+                var vertexFuncs = Translate(vertexMain);
 
+                foreach (var functionDesc in vertexFuncs)
+                {
+                    Console.WriteLine(functionDesc.Signature.NewLine().Append(functionDesc.Body));
+                }
+
+                //var vertexShader = new StringBuilder("void main()").NewLine().Append(vertexResult);
+
+                var fragmentResult = Translate(fragmentMain);
+
+
+                foreach (var functionDesc in fragmentResult)
+                {
+                    Console.WriteLine(functionDesc.Signature.NewLine().Append(functionDesc.Body));
+                }
+
+                var fragmentShader = new StringBuilder("void main()").NewLine().Append(fragmentResult);
+                // new StringBuilder("void main()").NewLine().Append(result);
                 Console.Write("\n");
             }
 
             Console.ReadLine();
         }
 
-        private static void Translate(MethodDefinition method)
+        private static StringBuilder MapReturnType(MethodDefinition method)
         {
+            var retType = xSLHelper.ResolveRef(method.ReturnType);
+
+            if (!xSLDataType.Types.ContainsKey(retType))
+            {
+                var strAdd = (retType != typeof(Object)) ? " \"" + retType.Name + "\"" : String.Empty;
+
+                var instr = method.Body.Instructions[0];
+                xSLHelper.Error("Method has an unsupported return type" + strAdd, instr);
+
+                return null;
+            }
+
+            return new StringBuilder(xSLDataType.Types[retType]);
+        }
+
+        private static StringBuilder JoinParams(MethodDefinition method)
+        {
+            var result = new StringBuilder();
+
+            foreach (var param in method.Parameters)
+            {
+                var paramType = xSLHelper.ResolveRef(param.ParameterType);
+
+                if (!xSLDataType.Types.ContainsKey(paramType))
+                {
+                    var strAdd = (paramType != typeof (Object)) ? " \"" + paramType.Name + "\"" : String.Empty;
+
+                    var instr = method.Body.Instructions[0];
+                    xSLHelper.Error("Method has a parameter of the unsupported type" + strAdd, instr);
+
+                    return null;
+                }
+
+                var isRef = (param.ParameterType is ByReferenceType);
+                var refStr = (isRef) ? "out " : String.Empty;
+
+                var typeMapped = xSLDataType.Types[paramType];
+                var paramName = param.Name;
+
+                result.Append(refStr).Append(typeMapped).Space();
+                result.Append(paramName).Append(", ");
+            }
+
+            if (result.Length > 0)
+                result.Length -= 2;
+
+            return result;
+        }
+
+        private static IEnumerable<FunctionDesc> Translate(MethodDefinition method)
+        {
+            var allFuncs = new Collection<FunctionDesc>();
+
+            // build function signature
+            var retTypeStr = MapReturnType(method);
+            var paramStr = JoinParams(method);
+
+            if (retTypeStr == null || paramStr == null)
+                return null;
+
+            var methodName = method.Name;
+            methodName = methodName.Replace("VertexShader", "main");
+            methodName = methodName.Replace("FragmentShader", "main");
+
+            var sig = retTypeStr.Space().Method(methodName, paramStr.ToString());
+
             // create DecompilerContext for given method
             var type = method.DeclaringType;
             var module = method.DeclaringType.Module;
@@ -337,7 +429,21 @@ namespace CrossSL
             var methodBody = AstMethodBodyBuilder.CreateMethodBody(method, decContext);
             var translator = new GLSLVisitor(methodBody, decContext);
 
-            Console.WriteLine(translator.Result);
+            // save information
+            var result = new FunctionDesc
+            {
+                MethodDef = method,
+                Signature = sig,
+                Body = translator.Result
+            };
+
+            // translate all referenced methods
+            foreach (var refMethod in translator.ReferencedMethods)
+                if (allFuncs.All(aMethod => aMethod.MethodDef != refMethod))
+                    allFuncs.AddRange(Translate(refMethod));
+
+            allFuncs.Add(result);
+            return allFuncs;
         }
     }
 }

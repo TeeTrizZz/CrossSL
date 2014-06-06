@@ -1,56 +1,40 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace CrossSL
 {
-    public static class ExtensionMethods
+    internal static class ExtensionMethods
     {
-        public static StringBuilder NewLine(this StringBuilder value)
-        {
-            return value.Append(Environment.NewLine);
-        }
-
-        public static StringBuilder Space(this StringBuilder value)
+        internal static StringBuilder Space(this StringBuilder value)
         {
             return value.Append(" ");
         }
 
-        public static StringBuilder Dot(this StringBuilder value)
+        internal static StringBuilder Dot(this StringBuilder value)
         {
             return value.Append(".");
         }
 
-        public static StringBuilder OBraces(this StringBuilder value)
-        {
-            return value.Append("{");
-        }
-
-        public static StringBuilder CBraces(this StringBuilder value)
-        {
-            return value.Append("}");
-        }
-
-        public static StringBuilder OParent(this StringBuilder value)
-        {
-            return value.Append("(");
-        }
-
-        public static StringBuilder CParent(this StringBuilder value)
-        {
-            return value.Append(")");
-        }
-
-        public static StringBuilder Semicolon(this StringBuilder value)
+        internal static StringBuilder Semicolon(this StringBuilder value)
         {
             return value.Append(";");
         }
 
-        public static StringBuilder Assign(this StringBuilder value, String op = "")
+        internal static StringBuilder Assign(this StringBuilder value, string op = "")
         {
             return value.Append(" " + op + "= ");
         }
 
-        public static StringBuilder Intend(this StringBuilder value, int level = 1)
+        internal static StringBuilder NewLine(this StringBuilder value, int lines = 1)
+        {
+            for (var i = 0; i < lines; i++)
+                value.Append(Environment.NewLine);
+
+            return value;
+        }
+
+        internal static StringBuilder Intend(this StringBuilder value, int level = 1)
         {
             for (var i = 0; i < level; i++)
                 value.Append("\t");
@@ -58,11 +42,32 @@ namespace CrossSL
             return value;
         }
 
-        public static StringBuilder Method(this StringBuilder value, string name, params string[] args)
+        internal static StringBuilder Block(this StringBuilder value, StringBuilder content)
         {
-            value.Append(name).Append("(");
-            value.Append(String.Join(", ", args));
-            return value.Append(")");
+            content.Replace(Environment.NewLine, Environment.NewLine + "\t").Length--;
+            return value.Append("{").NewLine().Intend().Append(content).Append("}");
+        }
+
+        internal static StringBuilder Method(this StringBuilder value, string name, params string[] args)
+        {
+            return value.Append(name).Append("(" + String.Join(", ", args) + ")");
+        }
+
+        internal static StringBuilder If(this StringBuilder value, StringBuilder cond)
+        {
+            return value.Method("if ", cond.ToString()).NewLine();
+        }
+
+        internal static StringBuilder Else(this StringBuilder value)
+        {
+            return value.NewLine().Append("else").NewLine();
+        }
+
+        // ICollection
+        public static void AddRange<T>(this ICollection<T> destination, IEnumerable<T> source)
+        {
+            foreach (var item in source)
+                destination.Add(item);
         }
     }
 }

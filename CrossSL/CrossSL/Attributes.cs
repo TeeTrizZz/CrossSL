@@ -68,12 +68,14 @@ namespace CrossSL
     {
         internal static Dictionary<Type, string> Types = new Dictionary<Type, string>
         {
+            {typeof (void), "void"},
             {typeof (int), "int"},
             {typeof (float), "float"},
             {typeof (float2), "vec2"},
             {typeof (float3), "vec3"},
             {typeof (float4), "vec4"},
-            {typeof (float4x4), "mat4"},
+            {typeof (float3x3), "mat3"},
+            {typeof (float4x4), "mat4"}
         };
 
         /// <summary>
@@ -94,6 +96,36 @@ namespace CrossSL
                 var typeData = attrData.First(attr => attr.AttributeType == typeAttr);
                 Types.Add(type, typeData.ConstructorArguments[0].Value.ToString());
             }
+        }
+    }
+
+    internal static class xSLMathMapping
+    {
+        internal static HashSet<Type> Types = new HashSet<Type>
+        {
+            typeof (Math)
+        };
+
+        internal static Dictionary<string, string> Methods = new Dictionary<string, string>
+        {
+            {"Normalize", "normalize"},
+            {"Dot", "dot"},
+            {"Max", "max"},
+            {"Min", "min"},
+        };
+
+        /// <summary>
+        ///     Resolves all <see cref="Fusee.Math" /> types by reflection at runtime,
+        ///     so that they can change and new types can be added without the need
+        ///     to update this class' <see cref="Types"/> field.
+        /// </summary>
+        internal static void UpdateTypes()
+        {
+            var lookUpType = typeof (float4);
+            var lookUpNS = lookUpType.Namespace;
+            var lookUpAssembly = lookUpType.Assembly;
+
+            Types.UnionWith(lookUpAssembly.GetTypes().Where(type => type.Namespace == lookUpNS));
         }
     }
 
