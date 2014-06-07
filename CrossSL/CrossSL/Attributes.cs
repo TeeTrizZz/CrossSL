@@ -10,6 +10,12 @@ namespace CrossSL
     // ReSharper disable InconsistentNaming
     // ReSharper disable UnusedParameter.Local
 
+    internal enum xSLShaderType
+    {
+        VertexShader,
+        FragmentShader
+    }
+
     internal enum xSLTarget
     {
         GLSL,
@@ -40,28 +46,12 @@ namespace CrossSL
         };
     }
 
-    [Flags]
-    internal enum xSLDebug
-    {
-        None,
-        PreCompile,
-        SaveToFile,
-        ThrowException
-    }
-
-    internal enum xSLPrecision
-    {
-        Low,
-        Medium,
-        High
-    }
-
-    internal enum xSLVariableAttr
+    internal enum xSLVariableType
     {
         xSLAttributeAttribute,
         xSLVaryingAttribute,
         xSLUniformAttribute,
-        xSLConstantAttribute
+        xSLConstAttribute
     }
 
     internal static class xSLDataType

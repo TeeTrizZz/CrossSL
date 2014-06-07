@@ -54,9 +54,7 @@ namespace CrossSL
         /// </summary>
         public override StringBuilder VisitSimpleType(SimpleType simpleType, int data)
         {
-            var typeRef = simpleType.Annotation<TypeReference>();
-            var sysType = xSLHelper.ResolveRef(typeRef);
-
+            var sysType = simpleType.Annotation<TypeReference>().ToType();
             var mappedType = MapDataTypeIfValid(simpleType, sysType);
 
             return mappedType == null
@@ -185,6 +183,13 @@ namespace CrossSL
             if (!(memberRefExpr.Target is ThisReferenceExpression))
                 result.Append(memberRefExpr.Target.AcceptVisitor(this, data));
 
+            var memberRef = memberRefExpr.Annotation<IMemberDefinition>();
+
+            if ((memberRefExpr.Target is ThisReferenceExpression) ||
+                (memberRefExpr.Target is BaseReferenceExpression))
+                if (!RefVariables.Contains(memberRef))
+                    RefVariables.Add(memberRef);
+
             return result.Append(memberRefExpr.MemberName);
         }
 
@@ -218,8 +223,8 @@ namespace CrossSL
             if (primitiveExpr.Value is double)
             {
                 var dInstr = GetInstructionFromStmt(primitiveExpr.GetParent<Statement>());
-                xSLHelper.Warning("Type \"double\" is not supported. " +
-                                  "Value will be casted to type \"float\".", dInstr);
+                xSLHelper.Warning("Type 'double' is not supported. " +
+                                  "Value will be casted to type 'float'.", dInstr);
             }
 
             if (primitiveExpr.Value is float || primitiveExpr.Value is double)
@@ -279,7 +284,7 @@ namespace CrossSL
             else
             {
                 var dInstr = GetInstructionFromStmt(unaryOpExpr.GetParent<Statement>());
-                xSLHelper.Error("Unary operator \"" + unaryOpExpr.Operator + "\" is not supported", dInstr);
+                xSLHelper.Error("Unary operator '" + unaryOpExpr.Operator + "' is not supported", dInstr);
             }
 
             return result;
@@ -310,7 +315,7 @@ namespace CrossSL
 
             var methodDef = invocationExpr.Annotation<MethodDefinition>() ??
                             invocationExpr.Annotation<MethodReference>().Resolve();
-            var declType = xSLHelper.ResolveRef(methodDef.DeclaringType);
+            var declType = methodDef.DeclaringType.ToType();
 
             var args = JoinArgs(invocationExpr.Arguments).ToString();
 
@@ -325,7 +330,7 @@ namespace CrossSL
 
             // otherwise just call the method
             if (declType != typeof(xSLShader))
-                ReferencedMethods.Add(methodDef);
+                RefMethods.Add(methodDef);
 
             return result.Method(methodDef.Name, args);
         }

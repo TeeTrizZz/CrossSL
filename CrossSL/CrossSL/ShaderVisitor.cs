@@ -9,7 +9,7 @@ using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.PatternMatching;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
-
+using Mono.Collections.Generic;
 using Attribute = ICSharpCode.NRefactory.CSharp.Attribute;
 
 namespace CrossSL
@@ -19,7 +19,9 @@ namespace CrossSL
         protected DecompilerContext DecContext;
 
         public StringBuilder Result { get; protected set; }
-        public List<MethodDefinition> ReferencedMethods { get; protected set; }
+
+        public Collection<MethodDefinition> RefMethods { get; protected set; }
+        public Collection<IMemberDefinition> RefVariables { get; protected set; } 
 
         internal ShaderVisitor(AstNode methodBody, DecompilerContext decContext)
         {
@@ -37,7 +39,8 @@ namespace CrossSL
             var transform3 = (IAstTransform) new DeclareVariables(decContext);
             transform3.Run(methodBody);
 
-            ReferencedMethods = new List<MethodDefinition>();
+            RefMethods = new Collection<MethodDefinition>();
+            RefVariables = new Collection<IMemberDefinition>();
         }
 
         protected T GetAnnotations<T>(Statement stmt) where T : class
@@ -89,7 +92,7 @@ namespace CrossSL
                 return xSLDataType.Types[type];
 
             var instr = GetInstructionFromStmt(node.GetParent<Statement>());
-            xSLHelper.Error("Type \"" + type + "\" is not supported", instr);
+            xSLHelper.Error("Type '" + type + "' is not supported", instr);
 
             return null;
         }

@@ -11,50 +11,124 @@ namespace XCompTests
 
     public abstract class xSLShader
     {
+        private class VertexShaderAttribute : Attribute
+        {
+            // dummy implementation
+        }
+
+        private class FragmentShaderAttribute : Attribute
+        {
+            // dummy implementation
+        }
+
+        private class MandatoryAttribute : Attribute
+        {
+            // dummy implementation
+        }
+
+        #region VERTEX/FRAGMENT SHADER VARIABLES
+
+        // vertex/fragment shader / attribute variables (RO)
+
+        [VertexShader, FragmentShader]
+        protected float4 glColor { get; private set; }
+
+        [VertexShader, FragmentShader]
+        protected float4 glSecondaryColor { get; private set; }
+
+        // vertex/fragment shader / varying output/input (RW)
+
+        [VertexShader, FragmentShader]
+        protected float4[] TexCoord { get; set; }
+
+        [VertexShader, FragmentShader]
+        protected float glFogFragCoord { get; set; }
+
+        #endregion
+
         #region VERTEX SHADER VARIABLES
 
         // vertex shader / output variables (RW)
-        protected float4 glPosition { get; set; }  // must be set!
+
+        [VertexShader, Mandatory]
+        protected float4 glPosition { get; set; }
+
+        [VertexShader]
         protected float glPointSize { get; set; }
+
+        [VertexShader]
         protected float4 glClipVertex { get; set; }
 
         // vertex shader / attribute variables (RO)
+
+        [VertexShader]
         protected float4 glVertex { get; private set; }
+
+        [VertexShader]
         protected float3 glNormal { get; private set; }
-        protected float4 glColor { get; private set; }
-        protected float4 glSecondaryColor { get; private set; }
+
+        [VertexShader]
         protected float4 glMultiTexCoord0 { get; private set; }
+
+        [VertexShader]
         protected float4 glMultiTexCoord1 { get; private set; }
+
+        [VertexShader]
         protected float4 glMultiTexCoord2 { get; private set; }
+
+        [VertexShader]
         protected float4 glMultiTexCoord3 { get; private set; }
+
+        [VertexShader]
         protected float4 glMultiTexCoord4 { get; private set; }
+
+        [VertexShader]
         protected float4 glMultiTexCoord5 { get; private set; }
+
+        [VertexShader]
         protected float4 glMultiTexCoord6 { get; private set; }
+
+        [VertexShader]
         protected float4 glMultiTexCoord7 { get; private set; }
+
+        [VertexShader]
         protected float glFogCoord { get; private set; }
 
         // vertex shader / varying output (RW)
+
+        [VertexShader]
         protected float4 glFrontColor { get; set; }
+
+        [VertexShader]
         protected float4 glBackColor { get; set; }
+
+        [VertexShader]
         protected float4 glFrontSecondaryColor { get; set; }
+
+        [VertexShader]
         protected float4 glBackSecondaryColor { get; set; }
-        protected float4[] TexCoord { get; set; }
-        protected float glFogFragCoord { get; set; }
 
         #endregion
 
         #region FRAGMENT SHADER VARIABLES
 
         // fragment shader / output variables (RW)
+
+        [FragmentShader, Mandatory]
         protected float4 glFragColor { get; set; }
+
+        [FragmentShader]
         protected float4[] glFragData { get; set; }
+
+        [FragmentShader]
         protected float glFragDepth { get; set; }
 
-        // fragment shader / varying input (RO)
-        // ---> glColor, glSecondaryColor, glTexCoord[], glFogFragCoord
-
         // fragment shader / input variables (RO)
+
+        [FragmentShader]
         protected float4 glFragCoord { get; private set; }
+
+        [FragmentShader]
         protected bool glFrontFacing { get; private set; }
 
         #endregion
@@ -222,8 +296,8 @@ namespace XCompTests
 
         // datatypes
         [xSLDataType("sampler2D")]
-        protected struct sampler2D {
-
+        protected struct sampler2D
+        {
         }
     }
 
@@ -245,21 +319,21 @@ namespace XCompTests
         {
             // to be modified by xSL
             Debug.WriteLine("xSL: Vertex shader of " +
-                typeof (TShader).Name + " has not been translated.");
+                            typeof (TShader).Name + " has not been translated.");
         }
 
         private static void FragmentInfo()
         {
             // to be modified by xSL
             Debug.WriteLine("xSL: Fragment shader of " +
-                typeof (TShader).Name + " has not been translated.");
+                            typeof (TShader).Name + " has not been translated.");
         }
 
         private static void ShaderObjInfo()
         {
             // to be modified by xSL
             Debug.WriteLine("xSL: Shader " +
-                typeof(TShader).Name + " has not been translated.");
+                            typeof (TShader).Name + " has not been translated.");
         }
 
         public static string VertexShader

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Fusee.Math;
 
 namespace XCompTests
@@ -27,20 +28,15 @@ namespace XCompTests
         [xSLUniform] internal float3 FuseeL0Pos;
         [xSLUniform] internal float3 FuseeL0Dir;
         [xSLUniform] internal float4 FuseeL0Diffuse;
-        [xSLUniform] internal float4 FuseeL0Ambient;
+        [xSLUniform] internal float4 FuseeL0Ambient = new float4(10, 5, 4, 1);
         [xSLUniform] internal float FuseeL0Spotangle;
 
         [xSLUniform] internal float4x4 FuseeV;
 
-        public DiffuseShader()
-        {
-            var x = 5;
-        }
-
         // Vertex Shader
         internal override void VertexShader()
         {
-            var vViewPosTemp = FuseeMV*new float4(FuVertex, 1);
+            var vViewPosTemp = FuseeMV*new float4(FuVertex, 1) * 10;
             _vViewPos = new float3(vViewPosTemp)/vViewPosTemp.w;
 
             _vUV = FuUV;
@@ -88,7 +84,10 @@ namespace XCompTests
             if (FuseeL0Active != 0)
             {
                 if (FuseeL0Active == 1)
-                    CalcDirectLight(FuseeL0Diffuse, FuseeL0Ambient, FuseeL0Pos, ref endIntensity);
+                {
+                    var x = new float4(1, 9, 4, 8);
+                    CalcDirectLight(x + FuseeL0Diffuse, FuseeL0Ambient, FuseeL0Pos, ref endIntensity);
+                }
 
                 if (FuseeL0Active == 2)
                     CalcPointLight(FuseeL0Diffuse, FuseeL0Ambient, FuseeL0Pos, ref endIntensity);

@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using ICSharpCode.NRefactory.CSharp;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
-using Mono.Collections.Generic;
 
 namespace CrossSL
 {
@@ -25,15 +20,51 @@ namespace CrossSL
         internal static bool Abort { get; private set; }
 
         /// <summary>
-        ///     Resolves the type of a given TypeReference via Mono.Cecil and System.Reflection.
+        ///     Extension for TypeReference:
+        ///         Resolves the type of a given TypeReference.
         /// </summary>
         /// <param name="typeRef">The type reference to resolve.</param>
-        /// <returns>The resolved type or <see cref="System.Object"/> if type is unknown.</returns>
-        internal static Type ResolveRef(TypeReference typeRef)
+        /// <returns>The resolved type or <see cref="System.Object" /> if type is unknown.</returns>
+        internal static Type ToType(this TypeReference typeRef)
         {
-            var typeDef = typeRef.Resolve();
-            var typeName = Assembly.CreateQualifiedName(typeDef.Module.Assembly.FullName, typeDef.FullName);
-            return Type.GetType(typeName.Replace('/', '+')) ?? typeof(Object);
+            return typeRef.Resolve().ToType();
+        }
+
+        /// <summary>
+        ///     Extension for TypeDefinion:
+        ///         Resolves the type of a given TypeDefinition.
+        /// </summary>
+        /// <param name="typeDef">The type definition to resolve.</param>
+        /// <returns>The resolved type or <see cref="System.Object" /> if type is unknown.</returns>
+        internal static Type ToType(this TypeDefinition typeDef)
+        {
+            var fullName = typeDef.Module.Assembly.FullName;
+            var typeName = Assembly.CreateQualifiedName(fullName, typeDef.FullName);
+            return Type.GetType(typeName.Replace('/', '+')) ?? typeof (Object);
+        }
+
+        /// <summary>
+        ///     Extension for TypeReference:
+        ///         Determines whether the given TypeReference is of a specific type.
+        /// </summary>
+        /// <typeparam name="T">The type to compare to.</typeparam>
+        /// <param name="typeRef">The TypeReference to compare.</param>
+        /// <returns></returns>
+        internal static bool IsType<T>(this TypeReference typeRef)
+        {
+            return (typeRef.ToType() == typeof (T));
+        }
+
+        /// <summary>
+        ///     Extension for TypeDefinion:
+        ///         Determines whether the given TypeDefinition is of a specific type.
+        /// </summary>
+        /// <typeparam name="T">The type to compare to.</typeparam>
+        /// <param name="typeDef">The TypeDefinition to compare.</param>
+        /// <returns></returns>
+        internal static bool IsType<T>(this TypeDefinition typeDef)
+        {
+            return (typeDef.ToType() == typeof(T));
         }
 
         /// <summary>
@@ -72,20 +103,20 @@ namespace CrossSL
         /// </summary>
         /// <param name="msg">The warning message.</param>
         /// <param name="findSeq">The corresponding instruction.</param>
-        internal static void Warning(string msg, Instruction findSeq)
+        internal static void Warning(string msg, Instruction findSeq = null)
         {
             msg = "    => WARNING: " + msg;
             WriteToConsole(msg, findSeq);
         }
 
         /// <summary>
-        ///     Prints an error to the console and sets <see cref="Abort"/> to [true].
+        ///     Prints an error to the console and sets <see cref="Abort" /> to [true].
         /// </summary>
         /// <param name="msg">The error message.</param>
         /// <param name="findSeq">The corresponding instruction.</param>
-        internal static void Error(string msg, Instruction findSeq)
+        internal static void Error(string msg, Instruction findSeq = null)
         {
-            msg = "    => ERROR: " + msg;
+            msg = "    => ERROR:   " + msg;
             WriteToConsole(msg, findSeq);
 
             Abort = true;
