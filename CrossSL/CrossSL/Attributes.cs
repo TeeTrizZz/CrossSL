@@ -16,7 +16,7 @@ namespace CrossSL
         FragmentShader
     }
 
-    internal enum xSLTarget
+    internal enum xSLEnvironment
     {
         GLSL,
         GLSLES

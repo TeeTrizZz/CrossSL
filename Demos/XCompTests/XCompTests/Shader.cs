@@ -301,38 +301,54 @@ namespace XCompTests
         }
     }
 
-    public sealed class xSL<TShader>
-        where TShader : xSLShader, new()
+    public sealed class xSL<TShader> where TShader : xSLShader, new()
     {
-        private static string _vertex = "... default ...";
-        private static string _fragment = "... default ...";
+        // ReSharper disable once FieldCanBeMadeReadOnly.Local
+        private static bool _translated;
+
+        private static string _vertex;
+        private static string _fragment;
+
         private static TShader _instance;
 
         static xSL()
         {
-            // to be filled by xSL
+            _vertex = "... default ...";
+            _fragment = "... default ...";
+            _translated = false;
+
+            Init();
 
             _instance = new TShader();
         }
 
+        // to be modified by xSL
+        private static void Init()
+        {
+            // dummy implementation
+        }
+
+        // to be modified by xSL
         private static void VertexInfo()
         {
-            // to be modified by xSL
-            Debug.WriteLine("xSL: Vertex shader of " +
+            if (!_translated)
+                Debug.WriteLine("xSL: Vertex shader of " +
                             typeof (TShader).Name + " has not been translated.");
         }
 
+        // to be modified by xSL
         private static void FragmentInfo()
         {
-            // to be modified by xSL
-            Debug.WriteLine("xSL: Fragment shader of " +
+            if (!_translated)
+                Debug.WriteLine("xSL: Fragment shader of " +
                             typeof (TShader).Name + " has not been translated.");
         }
 
+        // to be modified by xSL
         private static void ShaderObjInfo()
         {
-            // to be modified by xSL
-            Debug.WriteLine("xSL: Shader " +
+            if (!_translated)
+                Debug.WriteLine("xSL: Shader " +
                             typeof (TShader).Name + " has not been translated.");
         }
 

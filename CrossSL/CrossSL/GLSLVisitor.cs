@@ -349,7 +349,7 @@ namespace CrossSL
             if (@true.Statements.Count > 1)
                 result.Block(trueStmt);
             else
-                result.Intend().Append(trueStmt).Length--;
+                result.Intend().Append(trueStmt).Length -= 2;
 
             if (ifElseStmt.FalseStatement.IsNull)
                 return result;
@@ -360,7 +360,7 @@ namespace CrossSL
             if (@true.Statements.Count > 1)
                 result.Else().Block(falseStmt);
             else
-                result.Else().Intend().Append(falseStmt).Length--;
+                result.Else().Intend().Append(falseStmt).Length -= 2;
 
             return result;
         }

@@ -17,7 +17,7 @@ namespace CrossSL
         /// <summary>
         ///     Indicates if an error was raised and the compiler has to abort.
         /// </summary>
-        internal static bool Abort { get; private set; }
+        internal static bool Abort { get; set; }
 
         /// <summary>
         ///     Extension for TypeReference:
