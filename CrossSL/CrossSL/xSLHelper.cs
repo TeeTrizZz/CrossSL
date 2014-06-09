@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
@@ -18,6 +19,11 @@ namespace CrossSL
         ///     Indicates if an error was raised and the compiler has to abort.
         /// </summary>
         internal static bool Abort { get; set; }
+
+        /// <summary>
+        ///     Collects all error messages for further processing.
+        /// </summary>
+        internal static StringBuilder Errors { get; set; }
 
         /// <summary>
         ///     Extension for TypeReference:
@@ -68,18 +74,19 @@ namespace CrossSL
         }
 
         /// <summary>
-        ///     Prints a message to the console.
+        /// Prints a message to the console.
         /// </summary>
         /// <param name="msg">The message.</param>
         /// <param name="findSeq">The corresponding instruction.</param>
+        /// <returns>The messages posted to the console.</returns>
         /// <remarks>
-        ///     Some instructions have a SequencePoint which points to the specific line in
-        ///     the source file. If the given line has no SequencePoint, this method will step
-        ///     backwards until a SequencePoint is found (only if verbose mode is active).
+        /// Some instructions have a SequencePoint which points to the specific line in
+        /// the source file. If the given line has no SequencePoint, this method will step
+        /// backwards until a SequencePoint is found (only if verbose mode is active).
         /// </remarks>
-        private static void WriteToConsole(string msg, Instruction findSeq)
+        private static string WriteToConsole(string msg, Instruction findSeq)
         {
-            Console.Write(msg);
+            var message = new StringBuilder(msg);
 
             if (findSeq != null && Verbose)
             {
@@ -90,12 +97,14 @@ namespace CrossSL
                 {
                     var doc = findSeq.SequencePoint.Document.Url;
                     var line = findSeq.SequencePoint.StartLine;
+                    var colmn = findSeq.SequencePoint.StartColumn;
 
-                    Console.Write(" (" + Path.GetFileName(doc) + ":" + line + ")");
+                    message.Append(" (" + Path.GetFileName(doc) + "(" + line + "," + colmn + "))");
                 }
             }
 
-            Console.WriteLine(".");
+            Console.WriteLine(message.Dot());
+            return message.ToString();
         }
 
         /// <summary>
@@ -116,10 +125,20 @@ namespace CrossSL
         /// <param name="findSeq">The corresponding instruction.</param>
         internal static void Error(string msg, Instruction findSeq = null)
         {
-            msg = "    => ERROR:   " + msg;
-            WriteToConsole(msg, findSeq);
+            msg = "    => ERROR:   " + msg; 
+            Errors.Append(WriteToConsole(msg, findSeq)).NewLine();
 
             Abort = true;
+        }
+
+        /// <summary>
+        /// Resets <see cref="Abort"/> and <see cref="Errors"/> fields of this class.
+        /// </summary>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public static void Reset()
+        {
+            Abort = false;
+            Errors = new StringBuilder();
         }
     }
 }

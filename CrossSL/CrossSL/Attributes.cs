@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using CrossSL.Meta;
 using Fusee.Math;
-using XCompTests;
 
 namespace CrossSL
 {
@@ -71,7 +71,7 @@ namespace CrossSL
         /// <summary>
         ///     Some data types have to be resolved by reflection at runtime, as they are
         ///     protected and nested into the <see cref="xSLShader" /> class. They are
-        ///     marked with the <see cref="XCompTests.xSLDataTypeAttribute" /> attribute,
+        ///     marked with the <see cref="CrossSL.Meta.xSLDataTypeAttribute" /> attribute,
         ///     which also contains their GLSL equivalent as the constructor argument.
         /// </summary>
         internal static void UpdateTypes()

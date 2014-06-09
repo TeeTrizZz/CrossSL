@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using CrossSL.Meta;
 using ICSharpCode.Decompiler;
 using ICSharpCode.NRefactory.CSharp;
 using Mono.Cecil;
-using XCompTests;
 
 namespace CrossSL
 {

@@ -2,7 +2,7 @@
 using CrossSL.Meta;
 using Fusee.Math;
 
-namespace XCompTests
+namespace Example
 {
     [xSLTarget(xSLTarget.GLSLES.V100)]
     [xSLDebug(xSLDebug.PreCompile | xSLDebug.SaveToFile | xSLDebug.ThrowException)]
@@ -34,7 +34,7 @@ namespace XCompTests
         [xSLUniform] internal float4x4 FuseeV;
 
         // Vertex Shader
-        internal override void VertexShader()
+        protected override void VertexShader()
         {
             var vViewPosTemp = FuseeMV*new float4(FuVertex, 1) * 10;
             _vViewPos = new float3(vViewPosTemp)/vViewPosTemp.w;
@@ -77,7 +77,7 @@ namespace XCompTests
 
         [xSLPrecision(xSLEnvironment.OpenGLES,
             floatPrecision = xSLPrecision.High)]
-        internal override void FragmentShader()
+        protected override void FragmentShader()
         {
             var endIntensity = new float4(0, 0, 0, 0);
 
@@ -97,6 +97,8 @@ namespace XCompTests
                         ref endIntensity);
             }
 
+            glFragColor = new float4(0,0,0,0);
+            glPosition = new float4(0, 0, 0, 0);
             //glFragColor = texture2D(_texture1, _vUV)*endIntensity;
         }
     }

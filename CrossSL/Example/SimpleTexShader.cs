@@ -2,7 +2,7 @@
 using CrossSL.Meta;
 using Fusee.Math;
 
-namespace XCompTests
+namespace Example
 {
     [xSLTarget(xSLTarget.GLSLES.V100)]
     [xSLDebug(xSLDebug.PreCompile | xSLDebug.SaveToFile)]
@@ -22,7 +22,7 @@ namespace XCompTests
 
         [xSLPrecision(xSLEnvironment.OpenGLES,
             floatPrecision = xSLPrecision.Medium)]
-        internal  void VertexShader()
+        protected override void VertexShader()
         {
             _vUV = FuUV;
             _vNormal = new float3x3(FuseeITMV)*FuNormal;
@@ -32,7 +32,7 @@ namespace XCompTests
 
         [xSLPrecision(xSLEnvironment.OpenGLES,
             floatPrecision = xSLPrecision.Medium)]
-        internal override void FragmentShader()
+        protected override void FragmentShader()
         {
             var value = Math.Max(float3.Dot(new float3(0, 0, 1), float3.Normalize(_vNormal)), 0.2f);
             glFragColor = value*texture2D(_texture1, _vUV);

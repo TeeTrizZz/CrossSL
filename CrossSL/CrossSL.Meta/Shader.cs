@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using Fusee.Math;
 
-namespace XCompTests
+namespace CrossSL.Meta
 {
     // ReSharper disable InconsistentNaming
     // ReSharper disable UnusedMember.Local
@@ -280,8 +280,8 @@ namespace XCompTests
         #endregion
 
         // SHADER MAIN
-        internal abstract void VertexShader();
-        internal abstract void FragmentShader();
+        protected abstract void VertexShader();
+        protected abstract void FragmentShader();
 
         // BUILT-IN FUNCTIONS
         protected float4 texture2D(sampler2D sampler, float2 coord)
@@ -303,8 +303,10 @@ namespace XCompTests
 
     public sealed class xSL<TShader> where TShader : xSLShader, new()
     {
-        // ReSharper disable once FieldCanBeMadeReadOnly.Local
+        // ReSharper disable FieldCanBeMadeReadOnly.Local
         private static bool _translated;
+        private static string _error;
+        // ReSharper restore FieldCanBeMadeReadOnly.Local
 
         private static string _vertex;
         private static string _fragment;
@@ -313,9 +315,11 @@ namespace XCompTests
 
         static xSL()
         {
+            _translated = false;
+            _error = String.Empty;
+
             _vertex = "... default ...";
             _fragment = "... default ...";
-            _translated = false;
 
             Init();
 
@@ -329,34 +333,21 @@ namespace XCompTests
         }
 
         // to be modified by xSL
-        private static void VertexInfo()
+        private static void ShaderInfo()
         {
             if (!_translated)
-                Debug.WriteLine("xSL: Vertex shader of " +
-                            typeof (TShader).Name + " has not been translated.");
-        }
+                Debug.WriteLine("xSL: Shader '" + typeof (TShader).Name +
+                    "' has not been translated.");
 
-        // to be modified by xSL
-        private static void FragmentInfo()
-        {
-            if (!_translated)
-                Debug.WriteLine("xSL: Fragment shader of " +
-                            typeof (TShader).Name + " has not been translated.");
-        }
-
-        // to be modified by xSL
-        private static void ShaderObjInfo()
-        {
-            if (!_translated)
-                Debug.WriteLine("xSL: Shader " +
-                            typeof (TShader).Name + " has not been translated.");
+            if (_error != String.Empty)
+                throw new ApplicationException(_error);
         }
 
         public static string VertexShader
         {
             get
             {
-                VertexInfo();
+                ShaderInfo();
                 return _vertex;
             }
 
@@ -367,7 +358,7 @@ namespace XCompTests
         {
             get
             {
-                FragmentInfo();
+                ShaderInfo();
                 return _fragment;
             }
 
@@ -378,7 +369,7 @@ namespace XCompTests
         {
             get
             {
-                ShaderObjInfo();
+                ShaderInfo();
                 return _instance;
             }
 

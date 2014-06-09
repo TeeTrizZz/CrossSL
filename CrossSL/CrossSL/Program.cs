@@ -4,13 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using CrossSL.Meta;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Ast;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Pdb;
 using Mono.Collections.Generic;
-using XCompTests;
 
 namespace CrossSL
 {
@@ -55,7 +55,6 @@ namespace CrossSL
         internal TypeDefinition Type;
         internal ShaderTarget Target;
         internal xSLDebug DebugFlags;
-        internal bool Aborted;
         internal IEnumerable<VariableDesc> Variables;
         internal IEnumerable<FunctionDesc>[] Funcs;
         internal IEnumerable<Instruction> Instructions;
@@ -84,12 +83,15 @@ namespace CrossSL
 
             //var inputPath = @"..\..\..\Test\XCompTests.exe";
             const string inputPath =
-                @"E:\Dropbox\HS Furtwangen\7. Semester\Thesis\dev\Demos\XCompTests\XCompTests\bin\x86\Debug\XCompTests.exe";
+                @"E:\Dropbox\HS Furtwangen\7. Semester\Thesis\dev\CrossSL\Example\bin\Debug\Example.exe";
+
+            // ReSharper disable once AssignNullToNotNullAttribute
+            var metaPath = Path.Combine(Path.GetDirectoryName(inputPath), "CrossSL.Meta.dll");
 
             // if (args.Length == 0)
             //    return;
 
-            if (!File.Exists(inputPath))
+            if (!File.Exists(inputPath) || !File.Exists(metaPath))
             {
                 Console.WriteLine("File not found.");
                 throw new FileNotFoundException();
@@ -107,6 +109,10 @@ namespace CrossSL
             var readParams = new ReaderParameters {ReadSymbols = xSLHelper.Verbose};
             var asm = AssemblyDefinition.ReadAssembly(inputPath, readParams);
 
+            // read meta assembly (without symbols) with Mono.Cecil
+            var metaParams = new ReaderParameters { ReadSymbols = false };
+            var metaAsm = AssemblyDefinition.ReadAssembly(metaPath, metaParams);
+
             // find all types with xSLShader as base type
             var shaderDescs = new List<ShaderDesc>();
 
@@ -116,7 +122,7 @@ namespace CrossSL
 
             foreach (var asmType in asmShaderTypes)
             {
-                xSLHelper.Abort = false;
+                xSLHelper.Reset();
 
                 if (xSLHelper.Verbose)
                 {
@@ -233,8 +239,9 @@ namespace CrossSL
 
                     // see if there are property setter calls (as for "constants")
                     varInits = ctorMethod.Body.Instructions.Where(instr => instr.OpCode == OpCodes.Call);
+                    var setter = varInits.Where(instr => ((MethodReference) instr.Operand).Resolve().IsSetter);
 
-                    foreach (var varInit in varInits.Where(instr => ((MethodDefinition) instr.Operand).IsSetter))
+                    foreach (var varInit in setter)
                     {
                         var methDecl = (MethodDefinition) varInit.Operand;
                         var declType = methDecl.DeclaringType;
@@ -387,103 +394,115 @@ namespace CrossSL
                     }
                 }
 
+                if (xSLHelper.Abort && (xSLDebug.ThrowException & shaderDesc.DebugFlags) != 0)
+                    Console.WriteLine("    => Errors will be also thrown when using the shader.");
+
                 // save shaders into the assembly
                 Console.WriteLine("\n  6. Preparing to write shaders into the assembly.");
 
-                var genShader = asmType.Module.Types.First(type => type.ToType() == typeof (xSL<>));
+                var asmTypeImport = metaAsm.MainModule.Import(asmType);
+
+                var genShader = metaAsm.MainModule.Types.First(type => type.ToType() == typeof(xSL<>));
                 var instShader = new GenericInstanceType(genShader);
-                instShader.GenericArguments.Add(asmType);
+                instShader.GenericArguments.Add(asmTypeImport);
 
-                var genVField = genShader.Fields.First(field => field.Name == "_vertex");
-                var vField = new FieldReference(genVField.Name, genVField.FieldType)
+                var vertField = GenericFieldReference(genShader, instShader, "_vertex");
+                var fragField = GenericFieldReference(genShader, instShader, "_fragment");
+                var transField = GenericFieldReference(genShader, instShader, "_translated");
+
+                metaAsm.MainModule.Import(vertField);
+                metaAsm.MainModule.Import(fragField);
+                metaAsm.MainModule.Import(transField);
+
+                var instrList = new List<Instruction>();
+
+                if (!xSLHelper.Abort)
                 {
-                    DeclaringType = instShader
-                };
+                    instrList.Add(Instruction.Create(OpCodes.Ldstr, vertexResult.ToString()));
+                    instrList.Add(Instruction.Create(OpCodes.Stsfld, vertField));
 
-                var genFField = genShader.Fields.First(field => field.Name == "_fragment");
-                var fField = new FieldReference(genFField.Name, genFField.FieldType)
+                    instrList.Add(Instruction.Create(OpCodes.Ldstr, fragmentResult.ToString()));
+                    instrList.Add(Instruction.Create(OpCodes.Stsfld, fragField));
+
+                    instrList.Add(Instruction.Create(OpCodes.Ldc_I4_1));
+                    instrList.Add(Instruction.Create(OpCodes.Stsfld, transField));
+                }
+
+                // apply debug mode ThrowExpetion
+                if (xSLHelper.Abort && (xSLDebug.ThrowException & shaderDesc.DebugFlags) != 0)
                 {
-                    DeclaringType = instShader
-                };
+                    var errors = xSLHelper.Errors;
+                    var errField = GenericFieldReference(genShader, instShader, "_error");
 
-                var genTField = genShader.Fields.First(field => field.Name == "_translated");
-                var tField = new FieldReference(genTField.Name, genTField.FieldType)
-                {
-                    DeclaringType = instShader
-                };
+                    instrList.Add(Instruction.Create(OpCodes.Ldstr, errors.ToString()));
+                    instrList.Add(Instruction.Create(OpCodes.Stsfld, errField));
+                }
 
-                var ldVStr = Instruction.Create(OpCodes.Ldstr, vertexResult.ToString());
-                var stVStr = Instruction.Create(OpCodes.Stsfld, vField);
-
-                var ldFStr = Instruction.Create(OpCodes.Ldstr, fragmentResult.ToString());
-                var stFStr = Instruction.Create(OpCodes.Stsfld, fField);
-
-                var ldTInt = Instruction.Create(OpCodes.Ldc_I4_1);
-                var stTInt = Instruction.Create(OpCodes.Stsfld, tField);
-
-                var instrList = new List<Instruction> {ldVStr, stVStr, ldFStr, stFStr, ldTInt, stTInt};
                 shaderDesc.Instructions = instrList;
 
                 Console.WriteLine(xSLHelper.Abort
                     ? "\n  ---- Translation failed ----"
                     : "\n  ---- Translation succeeded ----");
 
-                shaderDesc.Aborted = xSLHelper.Abort;
                 shaderDescs.Add(shaderDesc);
             }
 
             // write shaders into assembly
-            var validCt = shaderDescs.Count(shader => shader.Aborted);
+            var invalidCt = shaderDescs.Count(shader => !shader.Instructions.Any());
 
-            if (validCt == shaderDescs.Count)
-                Console.WriteLine("\nAssembly will not be updated as no shader was translated successfully.");
+            if (invalidCt == shaderDescs.Count)
+                Console.WriteLine("\n\nAssembly will not be updated as no shader was translated successfully.");
             else
             {
-                Console.WriteLine(validCt > 0
-                    ? "\n\nAdding all successfully translated shader to the assembly:"
-                    : "\n\nAdding all translated shaders to the assembly:");
+                Console.WriteLine("\n\nUpdating assembly '" + metaPath + "':");
 
-                var filtDescs = shaderDescs.Where(shader => !shader.Aborted).ToList();
-                var moduleList = filtDescs.Select(shader => shader.Type.Module).Distinct();
+                var asmModule = metaAsm.MainModule;
+                var genShader = asmModule.Types.First(type => type.ToType() == typeof (xSL<>));
 
-                foreach (var module in moduleList)
-                {
-                    var descs = filtDescs.Where(shader => shader.Type.Module == module).ToList();
-                    var instrs = descs.SelectMany(shaderDesc => shaderDesc.Instructions);
+                var xSLInit = genShader.Methods.First(method => method.Name == "Init");
+                var ilProc = xSLInit.Body.GetILProcessor();
 
-                    var asmModule = descs.First().Type.Module;
-                    var genShader = asmModule.Types.First(type => type.ToType() == typeof (xSL<>));
+                xSLInit.Body.Instructions.Clear();
 
-                    var xSLInit = genShader.Methods.First(method => method.Name == "Init");
-                    var ilProc = xSLInit.Body.GetILProcessor();
-
-                    xSLInit.Body.Instructions.Clear();
-
-                    foreach (var instr in instrs)
+                foreach (var shaderDesc in shaderDescs)
+                    foreach (var instr in shaderDesc.Instructions)
                         ilProc.Append(instr);
 
-                    var ret = Instruction.Create(OpCodes.Ret);
-                    ilProc.Append(ret);
+                var ret = Instruction.Create(OpCodes.Ret);
+                ilProc.Append(ret);
 
-                    try
-                    {
-                        asmModule.Write(inputPath);
+                try
+                {
+                    var writeParams = new WriterParameters {WriteSymbols = false};
+                    asmModule.Write(metaPath, writeParams);
 
-                        foreach (var shaderDesc in descs)
-                            Console.WriteLine("  => Sucessfully added '" + shaderDesc.Name + "' to assembly.");
-                    }
-                    catch (IOException)
-                    {
-                        foreach (var shaderDesc in descs)
-                            Console.WriteLine("  => Cannot write shader '" + shaderDesc.Name +
-                                              "' into assembly. File might be read-only or in use.");
-                    }
+                    foreach (var shaderDesc in shaderDescs)
+                        if (shaderDesc.Instructions.Count() < 4)
+                            Console.WriteLine("  => Added shader '" + shaderDesc.Name + "' to assembly.");
+                        else
+                            Console.WriteLine("  => [ThrowException] mode was applied for shader '" +
+                                              shaderDesc.Name + "'.");
+                }
+                catch (IOException)
+                {
+                    Console.WriteLine("  => Cannot write shaders into assembly. " + 
+                        "File might be missing, read-only or in use.");
                 }
             }
 
             Console.WriteLine("\n\nDone.");
 
             Console.ReadLine();
+        }
+
+        private static FieldReference GenericFieldReference(TypeDefinition gen, TypeReference inst, string name)
+        {
+            var genTField = gen.Fields.First(field => field.Name == name);
+            var tField = new FieldReference(genTField.Name, genTField.FieldType)
+            {
+                DeclaringType = inst
+            };
+            return tField;
         }
 
         private static StringBuilder BuildShader(ref ShaderDesc shaderDescRef, xSLShaderType shaderType)
@@ -583,7 +602,6 @@ namespace CrossSL
                     var instr = globalVars.Last(var => var.Definion.Name == mandVar.Name).Instruction;
                     xSLHelper.Warning("'" + mandVar.Name + "' has been set more than" +
                                       " once in '" + shaderType + "()'", instr);
-
                 }
             }
 
