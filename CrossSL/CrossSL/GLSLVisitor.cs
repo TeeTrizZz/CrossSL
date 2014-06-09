@@ -187,8 +187,10 @@ namespace CrossSL
 
             if ((memberRefExpr.Target is ThisReferenceExpression) ||
                 (memberRefExpr.Target is BaseReferenceExpression))
-                if (!RefVariables.Contains(memberRef))
-                    RefVariables.Add(memberRef);
+            {
+                var instr = GetInstructionFromStmt(memberRefExpr.GetParent<Statement>());
+                RefVariables.Add(new VariableDesc {Definion = memberRef, Instruction = instr});
+            }
 
             return result.Append(memberRefExpr.MemberName);
         }

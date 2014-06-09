@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Ast;
@@ -11,52 +10,59 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Pdb;
 using Mono.Collections.Generic;
-using Mono.CSharp;
 using XCompTests;
-using AssemblyDefinition = Mono.Cecil.AssemblyDefinition;
-using Enum = System.Enum;
-using IMemberDefinition = Mono.Cecil.IMemberDefinition;
-using TypeDefinition = Mono.Cecil.TypeDefinition;
 
 namespace CrossSL
 {
+    internal struct FunctionDesc
+    {
+        internal MethodDefinition Definion;
+        internal StringBuilder Signature;
+        internal StringBuilder Body;
+        internal Collection<VariableDesc> Variables;
+    }
+
+    internal struct VariableDesc
+    {
+        internal IMemberDefinition Definion;
+        internal xSLVariableType Attribute;
+        internal Type DataType;
+        internal object Value;
+        internal Instruction Instruction;
+        internal bool IsReferenced;
+
+        public override bool Equals(object obj)
+        {
+            var name = ((VariableDesc) obj).Definion.FullName;
+            return name == Definion.FullName;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+    }
+
+    internal struct ShaderTarget
+    {
+        internal xSLEnvironment Envr;
+        internal int Version;
+    }
+
+    internal struct ShaderDesc
+    {
+        internal string Name;
+        internal TypeDefinition Type;
+        internal ShaderTarget Target;
+        internal xSLDebug DebugFlags;
+        internal bool Aborted;
+        internal IEnumerable<VariableDesc> Variables;
+        internal IEnumerable<FunctionDesc>[] Funcs;
+        internal IEnumerable<Instruction> Instructions;
+    }
+
     internal class Program
     {
-        public struct FunctionDesc
-        {
-            public MethodDefinition Definion;
-            public StringBuilder Signature;
-            public StringBuilder Body;
-            public IEnumerable<IMemberDefinition> Variables;
-        }
-
-        public struct VariableDesc
-        {
-            public IMemberDefinition Definion;
-            public xSLVariableType Attribute;
-            public Type DataType;
-            public object Value;
-            public bool IsReferenced;
-        }
-
-        public struct ShaderTarget
-        {
-            public xSLEnvironment Envr;
-            public int Version;
-        }
-
-        public struct ShaderDesc
-        {
-            public string Name;
-            public TypeDefinition Type;
-            public ShaderTarget Target;
-            public xSLDebug DebugFlags;
-            public bool Aborted;
-            public IEnumerable<VariableDesc> Variables;
-            public IEnumerable<FunctionDesc>[] Funcs;
-            public IEnumerable<Instruction> Instructions;
-        }
-
         private static bool MethodExists(TypeDefinition asmType, string methodName, out MethodDefinition method)
         {
             var methodCount = asmType.Methods.Count(asmMethod => asmMethod.Name == methodName);
@@ -171,7 +177,7 @@ namespace CrossSL
 
                     shaderDesc.Target = shaderTarget;
 
-                    var vStr = xSLVersion.VIDs[(int)shaderTarget.Envr][versionID];
+                    var vStr = xSLVersion.VIDs[(int) shaderTarget.Envr][versionID];
                     Console.WriteLine("  => Found [xSLTarget]. Compiling shader as " + typeName + " " + vStr + ".");
                 }
 
@@ -415,7 +421,7 @@ namespace CrossSL
                 var ldTInt = Instruction.Create(OpCodes.Ldc_I4_1);
                 var stTInt = Instruction.Create(OpCodes.Stsfld, tField);
 
-                var instrList = new List<Instruction> { ldVStr, stVStr, ldFStr, stFStr, ldTInt, stTInt };
+                var instrList = new List<Instruction> {ldVStr, stVStr, ldFStr, stFStr, ldTInt, stTInt};
                 shaderDesc.Instructions = instrList;
 
                 Console.WriteLine(xSLHelper.Abort
@@ -446,7 +452,7 @@ namespace CrossSL
                     var instrs = descs.SelectMany(shaderDesc => shaderDesc.Instructions);
 
                     var asmModule = descs.First().Type.Module;
-                    var genShader = asmModule.Types.First(type => type.ToType() == typeof(xSL<>));
+                    var genShader = asmModule.Types.First(type => type.ToType() == typeof (xSL<>));
 
                     var xSLInit = genShader.Methods.First(method => method.Name == "Init");
                     var ilProc = xSLInit.Body.GetILProcessor();
@@ -465,13 +471,12 @@ namespace CrossSL
 
                         foreach (var shaderDesc in descs)
                             Console.WriteLine("  => Sucessfully added '" + shaderDesc.Name + "' to assembly.");
-
                     }
                     catch (IOException)
                     {
                         foreach (var shaderDesc in descs)
                             Console.WriteLine("  => Cannot write shader '" + shaderDesc.Name +
-                                            "' into assembly. File might be read-only or in use.");
+                                              "' into assembly. File might be read-only or in use.");
                     }
                 }
             }
@@ -490,19 +495,20 @@ namespace CrossSL
             var functions = shaderDesc.Funcs[(int) shaderType];
 
             // collect all referenced variables
-            var refVars = new HashSet<IMemberDefinition>();
+            var refVars = new List<VariableDesc>();
 
             foreach (var func in functions.Where(func => func.Variables != null))
-                refVars.UnionWith(func.Variables);
+                refVars.AddRange(func.Variables);
 
-            var allVars = shaderDesc.Variables.ToList();
-            var memberVars = refVars.Where(def => def.DeclaringType.ToType() == shaderDesc.Type.ToType());
             var varDescs = new Collection<VariableDesc>();
+            var allVars = shaderDesc.Variables.ToList();
+            var shaderDescType = shaderDesc.Type.ToType();
+            var memberVars = refVars.Where(var => var.Definion.DeclaringType.ToType() == shaderDescType);
 
             foreach (var memberVar in memberVars)
             {
-                var globIndex = allVars.FindIndex(var => var.Definion == memberVar);
-                var globVar = allVars.First(var => var.Definion == memberVar);
+                var globIndex = allVars.FindIndex(var => var.Definion == memberVar.Definion);
+                var globVar = allVars.First(var => var.Definion == memberVar.Definion);
 
                 varDescs.Add(globVar);
 
@@ -511,6 +517,25 @@ namespace CrossSL
             }
 
             shaderDesc.Variables = allVars;
+
+            // check if varyings are used properly
+            var varVars = varDescs.Where(var => var.Attribute == xSLVariableType.xSLVaryingAttribute);
+
+            if (shaderType == xSLShaderType.FragmentShader)
+            {
+                foreach (var invalidVar in varVars.Where(var => !var.IsReferenced))
+                    xSLHelper.Error("Varying '" + invalidVar.Definion.Name + "' is used in 'FragmentShader()'" +
+                                    " but was not set in 'VertexShader()'", invalidVar.Instruction);
+            }
+            else
+            {
+                var fragFunc = shaderDesc.Funcs[(int) xSLShaderType.FragmentShader];
+                var mergedVars = fragFunc.SelectMany(func => func.Variables).ToList();
+
+                foreach (var invalidVar in varVars.Where(var => !mergedVars.Contains(var)))
+                    xSLHelper.Warning("Varying '" + invalidVar.Definion.Name + "' was set in 'VertexShader()'" +
+                                      " but is not used in 'FragmentShader()'", invalidVar.Instruction);
+            }
 
             // add variables to shader output
             foreach (var varDesc in varDescs.OrderBy(var => var.Attribute))
@@ -536,23 +561,34 @@ namespace CrossSL
             var validProps = allProps.Where(prop => prop.CustomAttributes.Any(attr => attr.AttributeType == attrType));
             var validNames = validProps.Select(prop => prop.Name).ToList();
 
-            var globalVars = refVars.Where(def => def.DeclaringType.ToType() == typeof(xSLShader));
-            var globalNames = globalVars.Select(var => var.Name).ToList();
+            var globalVars = refVars.Where(def => def.Definion.DeclaringType.IsType<xSLShader>()).ToList();
+            var globalNames = globalVars.Select(var => var.Definion.Name).ToList();
 
-            var invalidVars = globalNames.Where(var => !validNames.Contains(var));
-
-            foreach (var memberVar in invalidVars)
-                xSLHelper.Error("'" + memberVar + "' cannot be used in '" + shaderType + "()'");
+            foreach (var memberVar in globalNames.Where(var => !validNames.Contains(var)))
+            {
+                var instr = globalVars.First(var => var.Definion.Name == memberVar).Instruction;
+                xSLHelper.Error("'" + memberVar + "' cannot be used in '" + shaderType + "()'", instr);
+            }
 
             // check if necessary variables are set
             var mandVars = allProps.Where(prop => prop.CustomAttributes.Any(attr => attr.AttributeType == mandType));
 
             foreach (var mandVar in mandVars)
+            {
                 if (validNames.Contains(mandVar.Name) && !globalNames.Contains(mandVar.Name))
                     xSLHelper.Error("'" + mandVar.Name + "' has to be set in '" + shaderType + "'");
 
+                if (globalNames.Count(var => var == mandVar.Name) > 1)
+                {
+                    var instr = globalVars.Last(var => var.Definion.Name == mandVar.Name).Instruction;
+                    xSLHelper.Warning("'" + mandVar.Name + "' has been set more than" +
+                                      " once in '" + shaderType + "()'", instr);
+
+                }
+            }
+
             // add all functions to shader output
-            foreach (var func in shaderDesc.Funcs[(int)shaderType])
+            foreach (var func in shaderDesc.Funcs[(int) shaderType])
                 result.NewLine(2).Append(func.Signature).NewLine().Append(func.Body);
 
             shaderDescRef = shaderDesc;

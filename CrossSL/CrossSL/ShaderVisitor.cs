@@ -21,7 +21,7 @@ namespace CrossSL
         public StringBuilder Result { get; protected set; }
 
         public Collection<MethodDefinition> RefMethods { get; protected set; }
-        public Collection<IMemberDefinition> RefVariables { get; protected set; } 
+        public Collection<VariableDesc> RefVariables { get; protected set; } 
 
         internal ShaderVisitor(AstNode methodBody, DecompilerContext decContext)
         {
@@ -40,7 +40,7 @@ namespace CrossSL
             transform3.Run(methodBody);
 
             RefMethods = new Collection<MethodDefinition>();
-            RefVariables = new Collection<IMemberDefinition>();
+            RefVariables = new Collection<VariableDesc>();
         }
 
         protected T GetAnnotations<T>(Statement stmt) where T : class
