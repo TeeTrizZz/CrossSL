@@ -31,10 +31,10 @@ namespace CrossSL.Meta
         // vertex/fragment shader / attribute variables (RO)
 
         [VertexShader, FragmentShader]
-        protected float4 glColor { get; private set; }
+        protected float4 xslColor { get; private set; }
 
         [VertexShader, FragmentShader]
-        protected float4 glSecondaryColor { get; private set; }
+        protected float4 xslSecondaryColor { get; private set; }
 
         // vertex/fragment shader / varying output/input (RW)
 
@@ -42,7 +42,7 @@ namespace CrossSL.Meta
         protected float4[] TexCoord { get; set; }
 
         [VertexShader, FragmentShader]
-        protected float glFogFragCoord { get; set; }
+        protected float xslFogFragCoord { get; set; }
 
         #endregion
 
@@ -51,62 +51,62 @@ namespace CrossSL.Meta
         // vertex shader / output variables (RW)
 
         [VertexShader, Mandatory]
-        protected float4 glPosition { get; set; }
+        protected float4 xslPosition { get; set; }
 
         [VertexShader]
-        protected float glPointSize { get; set; }
+        protected float xslPointSize { get; set; }
 
         [VertexShader]
-        protected float4 glClipVertex { get; set; }
+        protected float4 xslClipVertex { get; set; }
 
         // vertex shader / attribute variables (RO)
 
         [VertexShader]
-        protected float4 glVertex { get; private set; }
+        protected float4 xslVertex { get; private set; }
 
         [VertexShader]
-        protected float3 glNormal { get; private set; }
+        protected float3 xslNormal { get; private set; }
 
         [VertexShader]
-        protected float4 glMultiTexCoord0 { get; private set; }
+        protected float4 xslMultiTexCoord0 { get; private set; }
 
         [VertexShader]
-        protected float4 glMultiTexCoord1 { get; private set; }
+        protected float4 xslMultiTexCoord1 { get; private set; }
 
         [VertexShader]
-        protected float4 glMultiTexCoord2 { get; private set; }
+        protected float4 xslMultiTexCoord2 { get; private set; }
 
         [VertexShader]
-        protected float4 glMultiTexCoord3 { get; private set; }
+        protected float4 xslMultiTexCoord3 { get; private set; }
 
         [VertexShader]
-        protected float4 glMultiTexCoord4 { get; private set; }
+        protected float4 xslMultiTexCoord4 { get; private set; }
 
         [VertexShader]
-        protected float4 glMultiTexCoord5 { get; private set; }
+        protected float4 xslMultiTexCoord5 { get; private set; }
 
         [VertexShader]
-        protected float4 glMultiTexCoord6 { get; private set; }
+        protected float4 xslMultiTexCoord6 { get; private set; }
 
         [VertexShader]
-        protected float4 glMultiTexCoord7 { get; private set; }
+        protected float4 xslMultiTexCoord7 { get; private set; }
 
         [VertexShader]
-        protected float glFogCoord { get; private set; }
+        protected float xslFogCoord { get; private set; }
 
         // vertex shader / varying output (RW)
 
         [VertexShader]
-        protected float4 glFrontColor { get; set; }
+        protected float4 xslFrontColor { get; set; }
 
         [VertexShader]
-        protected float4 glBackColor { get; set; }
+        protected float4 xslBackColor { get; set; }
 
         [VertexShader]
-        protected float4 glFrontSecondaryColor { get; set; }
+        protected float4 xslFrontSecondaryColor { get; set; }
 
         [VertexShader]
-        protected float4 glBackSecondaryColor { get; set; }
+        protected float4 xslBackSecondaryColor { get; set; }
 
         #endregion
 
@@ -115,76 +115,76 @@ namespace CrossSL.Meta
         // fragment shader / output variables (RW)
 
         [FragmentShader, Mandatory]
-        protected float4 glFragColor { get; set; }
+        protected float4 xslFragColor { get; set; }
 
         [FragmentShader]
-        protected float4[] glFragData { get; set; }
+        protected float4[] xslFragData { get; set; }
 
         [FragmentShader]
-        protected float glFragDepth { get; set; }
+        protected float xslFragDepth { get; set; }
 
         // fragment shader / input variables (RO)
 
         [FragmentShader]
-        protected float4 glFragCoord { get; private set; }
+        protected float4 xslFragCoord { get; private set; }
 
         [FragmentShader]
-        protected bool glFrontFacing { get; private set; }
+        protected bool xslFrontFacing { get; private set; }
 
         #endregion
 
         #region BUILT-IN CONSTANTS
 
-        protected int glMaxVertexUniformComponents { get; private set; }
-        protected int glMaxFragmentUniformComponents { get; private set; }
-        protected int glMaxVertexAttribs { get; private set; }
-        protected int glMaxVaryingFloats { get; private set; }
-        protected int glMaxDrawBuffers { get; private set; }
-        protected int glMaxTextureCoords { get; private set; }
-        protected int glMaxTextureUnits { get; private set; }
-        protected int glMaxTextureImageUnits { get; private set; }
-        protected int glMaxVertexTextureImageUnits { get; private set; }
-        protected int glMaxCombinedTextureImageUnits { get; private set; }
-        protected int glMaxLights { get; private set; }
-        protected int glMaxClipPlanes { get; private set; }
+        protected int xslMaxVertexUniformComponents { get; private set; }
+        protected int xslMaxFragmentUniformComponents { get; private set; }
+        protected int xslMaxVertexAttribs { get; private set; }
+        protected int xslMaxVaryingFloats { get; private set; }
+        protected int xslMaxDrawBuffers { get; private set; }
+        protected int xslMaxTextureCoords { get; private set; }
+        protected int xslMaxTextureUnits { get; private set; }
+        protected int xslMaxTextureImageUnits { get; private set; }
+        protected int xslMaxVertexTextureImageUnits { get; private set; }
+        protected int xslMaxCombinedTextureImageUnits { get; private set; }
+        protected int xslMaxLights { get; private set; }
+        protected int xslMaxClipPlanes { get; private set; }
 
         #endregion
 
         #region BUILT-IN UNIFORMS
 
-        protected float4x4 glModelViewMatrix { get; private set; }
-        protected float4x4 glModelViewProjectionMatrix { get; private set; }
-        protected float4x4 glProjectionMatrix { get; private set; }
-        protected float4x4[] glTextureMatrix { get; private set; }
+        protected float4x4 xslModelViewMatrix { get; private set; }
+        protected float4x4 xslModelViewProjectionMatrix { get; private set; }
+        protected float4x4 xslProjectionMatrix { get; private set; }
+        protected float4x4[] xslTextureMatrix { get; private set; }
 
-        protected float4x4 glModelViewMatrixInverse { get; private set; }
-        protected float4x4 glModelViewProjectionMatrixInverse { get; private set; }
-        protected float4x4 glProjectionMatrixInverse { get; private set; }
-        protected float4x4[] glTextureMatrixInverse { get; private set; }
+        protected float4x4 xslModelViewMatrixInverse { get; private set; }
+        protected float4x4 xslModelViewProjectionMatrixInverse { get; private set; }
+        protected float4x4 xslProjectionMatrixInverse { get; private set; }
+        protected float4x4[] xslTextureMatrixInverse { get; private set; }
 
-        protected float4x4 glModelViewMatrixTranspose { get; private set; }
-        protected float4x4 glModelViewProjectionMatrixTranspose { get; private set; }
-        protected float4x4 glProjectionMatrixTranspose { get; private set; }
-        protected float4x4[] glTextureMatrixTranspose { get; private set; }
+        protected float4x4 xslModelViewMatrixTranspose { get; private set; }
+        protected float4x4 xslModelViewProjectionMatrixTranspose { get; private set; }
+        protected float4x4 xslProjectionMatrixTranspose { get; private set; }
+        protected float4x4[] xslTextureMatrixTranspose { get; private set; }
 
-        protected float4x4 glModelViewMatrixInverseTranspose { get; private set; }
-        protected float4x4 glModelViewProjectionMatrixInverseTranspose { get; private set; }
-        protected float4x4 glProjectionMatrixInverseTranspose { get; private set; }
-        protected float4x4[] glTextureMatrixInverseTranspose { get; private set; }
+        protected float4x4 xslModelViewMatrixInverseTranspose { get; private set; }
+        protected float4x4 xslModelViewProjectionMatrixInverseTranspose { get; private set; }
+        protected float4x4 xslProjectionMatrixInverseTranspose { get; private set; }
+        protected float4x4[] xslTextureMatrixInverseTranspose { get; private set; }
 
-        protected float4x4 glNormalMatrix { get; private set; }
-        protected float4x4 glNormalScale { get; private set; }
+        protected float4x4 xslNormalMatrix { get; private set; }
+        protected float4x4 xslNormalScale { get; private set; }
 
-        protected struct glDepthRangeParameters
+        protected struct xslDepthRangeParameters
         {
             public float Near;
             public float Far;
             public float Diff;
         }
 
-        protected glDepthRangeParameters glDepthRange { get; private set; }
+        protected xslDepthRangeParameters xslDepthRange { get; private set; }
 
-        protected struct glFogParameters
+        protected struct xslFogParameters
         {
             public float4 Color;
             public float Density;
@@ -193,9 +193,9 @@ namespace CrossSL.Meta
             public float Scale;
         }
 
-        protected glFogParameters glFog { get; private set; }
+        protected xslFogParameters xslFog { get; private set; }
 
-        protected struct glLightSourceParameters
+        protected struct xslLightSourceParameters
         {
             public float4 Ambient;
             public float4 Diffuse;
@@ -211,34 +211,34 @@ namespace CrossSL.Meta
             public float QuadraticAttenuation;
         }
 
-        protected glLightSourceParameters[] glLightSource { get; private set; }
+        protected xslLightSourceParameters[] xslLightSource { get; private set; }
 
-        protected struct glLightModelParameters
+        protected struct xslLightModelParameters
         {
             public float4 Ambient;
         }
 
-        protected glLightModelParameters glLightModel { get; private set; }
+        protected xslLightModelParameters xslLightModel { get; private set; }
 
-        protected struct glLightModelProducts
+        protected struct xslLightModelProducts
         {
             public float4 SceneColor;
         }
 
-        protected glLightModelProducts glFrontLightModelProduct { get; private set; }
-        protected glLightModelProducts glBackLightModelProduct { get; private set; }
+        protected xslLightModelProducts xslFrontLightModelProduct { get; private set; }
+        protected xslLightModelProducts xslBackLightModelProduct { get; private set; }
 
-        protected struct glLightProducts
+        protected struct xslLightProducts
         {
             public float4 Ambient;
             public float4 Diffuse;
             public float4 Specular;
         }
 
-        protected glLightProducts[] glFrontLightProduct { get; private set; }
-        protected glLightProducts[] glBackLightProduct { get; private set; }
+        protected xslLightProducts[] xslFrontLightProduct { get; private set; }
+        protected xslLightProducts[] xslBackLightProduct { get; private set; }
 
-        protected struct glMaterialParameters
+        protected struct xslMaterialParameters
         {
             public float4 Emission;
             public float4 Ambient;
@@ -247,10 +247,10 @@ namespace CrossSL.Meta
             public float Shininess;
         }
 
-        protected glMaterialParameters glFrontMaterial { get; private set; }
-        protected glMaterialParameters glBackMaterial { get; private set; }
+        protected xslMaterialParameters xslFrontMaterial { get; private set; }
+        protected xslMaterialParameters xslBackMaterial { get; private set; }
 
-        protected struct glPointParameters
+        protected struct xslPointParameters
         {
             public float Size;
             public float SizeMin;
@@ -261,21 +261,21 @@ namespace CrossSL.Meta
             public float DistanceQuadraticAttenuation;
         }
 
-        protected glPointParameters glPoint { get; private set; }
+        protected xslPointParameters xslPoint { get; private set; }
 
-        protected float4[] glTextureEnvColor { get; private set; }
+        protected float4[] xslTextureEnvColor { get; private set; }
 
-        protected float4[] glClipPlane { get; private set; }
+        protected float4[] xslClipPlane { get; private set; }
 
-        protected float4[] glEyePlaneS { get; private set; }
-        protected float4[] glEyePlaneT { get; private set; }
-        protected float4[] glEyePlaneR { get; private set; }
-        protected float4[] glEyePlaneQ { get; private set; }
+        protected float4[] xslEyePlaneS { get; private set; }
+        protected float4[] xslEyePlaneT { get; private set; }
+        protected float4[] xslEyePlaneR { get; private set; }
+        protected float4[] xslEyePlaneQ { get; private set; }
 
-        protected float4[] glObjectPlaneS { get; private set; }
-        protected float4[] glObjectPlaneT { get; private set; }
-        protected float4[] glObjectPlaneR { get; private set; }
-        protected float4[] glObjectPlaneQ { get; private set; }
+        protected float4[] xslObjectPlaneS { get; private set; }
+        protected float4[] xslObjectPlaneT { get; private set; }
+        protected float4[] xslObjectPlaneR { get; private set; }
+        protected float4[] xslObjectPlaneQ { get; private set; }
 
         #endregion
 
@@ -284,12 +284,12 @@ namespace CrossSL.Meta
         protected abstract void FragmentShader();
 
         // BUILT-IN FUNCTIONS
-        protected float4 texture2D(sampler2D sampler, float2 coord)
+        protected float4 Texture2D(sampler2D sampler, float2 coord)
         {
             return new float4(1, 1, 1, 1);
         }
 
-        protected float4 texture2D(sampler2D sampler, float2 coord, float bias)
+        protected float4 Texture2D(sampler2D sampler, float2 coord, float bias)
         {
             return new float4(1, 1, 1, 1);
         }

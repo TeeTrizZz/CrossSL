@@ -61,7 +61,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ShaderVisitor.cs" />
     <Compile Include="ExtensionMethods.cs" />
-    <Compile Include="xSLHelper.cs" />
+    <Compile Include="Helper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

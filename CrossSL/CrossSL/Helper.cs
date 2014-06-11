@@ -2,13 +2,14 @@
 using System.IO;
 using System.Reflection;
 using System.Text;
+using ICSharpCode.NRefactory.CSharp;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
 namespace CrossSL
 {
     // ReSharper disable once InconsistentNaming
-    internal static class xSLHelper
+    internal static class Helper
     {
         /// <summary>
         ///     Indicates if verbose mode is activ (i.e. if a .pdb file was found).
@@ -27,9 +28,9 @@ namespace CrossSL
 
         /// <summary>
         ///     Extension for TypeReference:
-        ///         Resolves the type of a given TypeReference.
+        ///         Resolves the type of a given <see cref="TypeReference" />.
         /// </summary>
-        /// <param name="typeRef">The type reference to resolve.</param>
+        /// <param name="typeRef">The <see cref="TypeReference" /> to resolve.</param>
         /// <returns>The resolved type or <see cref="System.Object" /> if type is unknown.</returns>
         internal static Type ToType(this TypeReference typeRef)
         {
@@ -38,9 +39,9 @@ namespace CrossSL
 
         /// <summary>
         ///     Extension for TypeDefinion:
-        ///         Resolves the type of a given TypeDefinition.
+        ///         Resolves the type of a given <see cref="TypeDefinition" />.
         /// </summary>
-        /// <param name="typeDef">The type definition to resolve.</param>
+        /// <param name="typeDef">The <see cref="TypeDefinition" /> to resolve.</param>
         /// <returns>The resolved type or <see cref="System.Object" /> if type is unknown.</returns>
         internal static Type ToType(this TypeDefinition typeDef)
         {
@@ -51,10 +52,10 @@ namespace CrossSL
 
         /// <summary>
         ///     Extension for TypeReference:
-        ///         Determines whether the given TypeReference is of a specific type.
+        ///         Determines whether the given <see cref="TypeReference" /> is of a specific type.
         /// </summary>
         /// <typeparam name="T">The type to compare to.</typeparam>
-        /// <param name="typeRef">The TypeReference to compare.</param>
+        /// <param name="typeRef">The <see cref="TypeReference" /> to compare.</param>
         /// <returns></returns>
         internal static bool IsType<T>(this TypeReference typeRef)
         {
@@ -63,14 +64,26 @@ namespace CrossSL
 
         /// <summary>
         ///     Extension for TypeDefinion:
-        ///         Determines whether the given TypeDefinition is of a specific type.
+        ///         Determines whether the given <see cref="TypeDefinition" /> is of a specific type.
         /// </summary>
         /// <typeparam name="T">The type to compare to.</typeparam>
-        /// <param name="typeDef">The TypeDefinition to compare.</param>
+        /// <param name="typeDef">The <see cref="TypeDefinition" /> to compare.</param>
         /// <returns></returns>
         internal static bool IsType<T>(this TypeDefinition typeDef)
         {
             return (typeDef.ToType() == typeof(T));
+        }
+
+        /// <summary>
+        ///     Extension for Expression:
+        ///         Determines whether the given <see cref="Expression" /> is of a specific type.
+        /// </summary>
+        /// <typeparam name="T">The type to compare to.</typeparam>
+        /// <param name="expr">The <see cref="Expression" /> to compare.</param>
+        /// <returns></returns>
+        internal static bool IsType<T>(this Expression expr)
+        {
+            return (expr.GetType() == typeof(T));
         }
 
         /// <summary>

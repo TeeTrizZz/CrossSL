@@ -48,6 +48,7 @@ namespace CrossSL
 
     internal enum xSLVariableType
     {
+        xSLUnknown,
         xSLAttributeAttribute,
         xSLVaryingAttribute,
         xSLUniformAttribute,

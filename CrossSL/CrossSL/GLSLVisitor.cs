@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using CrossSL.Meta;
 using ICSharpCode.Decompiler;
@@ -11,7 +12,7 @@ namespace CrossSL
 {
     internal class GLSLVisitor : ShaderVisitor
     {
-        internal GLSLVisitor(BlockStatement methodBody, DecompilerContext decContext)
+        internal GLSLVisitor(AstNode methodBody, DecompilerContext decContext)
             : base(methodBody, decContext)
         {
             Result = new StringBuilder().Block(methodBody.AcceptVisitor(this, 0));
@@ -122,7 +123,24 @@ namespace CrossSL
             };
 
             result.Assign(opAssignment[assignmentExpr.Operator]);
-            return result.Append(assignmentExpr.Right.AcceptVisitor(this, data));
+            var rightRes = assignmentExpr.Right.AcceptVisitor(this, data);
+
+            // add value to RefVariables if this is an "constant initialization"
+            if (assignmentExpr.Operator == AssignmentOperatorType.Assign)
+                if (assignmentExpr.Left.IsType<MemberReferenceExpression>())
+                {
+                    var left = (MemberReferenceExpression) assignmentExpr.Left;
+                    var memberRef = left.Annotation<IMemberDefinition>();
+                    var refVar = RefVariables.Last(var => var.Definition == memberRef);
+
+                    if (assignmentExpr.Right.IsType<ObjectCreateExpression>() ||
+                        assignmentExpr.Right.IsType<PrimitiveExpression>())
+                        RefVariables[RefVariables.IndexOf(refVar)].Value = rightRes;
+                    else
+                        RefVariables[RefVariables.IndexOf(refVar)].Value = "Exception";
+                }
+
+            return result.Append(rightRes);
         }
 
         /// <summary>
@@ -185,11 +203,10 @@ namespace CrossSL
 
             var memberRef = memberRefExpr.Annotation<IMemberDefinition>();
 
-            if ((memberRefExpr.Target is ThisReferenceExpression) ||
-                (memberRefExpr.Target is BaseReferenceExpression))
+            if (memberRef != null)
             {
                 var instr = GetInstructionFromStmt(memberRefExpr.GetParent<Statement>());
-                RefVariables.Add(new VariableDesc {Definion = memberRef, Instruction = instr});
+                RefVariables.Add(new VariableDesc {Definition = memberRef, Instruction = instr});
             }
 
             return result.Append(memberRefExpr.MemberName);
@@ -225,7 +242,7 @@ namespace CrossSL
             if (primitiveExpr.Value is double)
             {
                 var dInstr = GetInstructionFromStmt(primitiveExpr.GetParent<Statement>());
-                xSLHelper.Warning("Type 'double' is not supported. " +
+                Helper.Warning("Type 'double' is not supported. " +
                                   "Value will be casted to type 'float'.", dInstr);
             }
 
@@ -286,7 +303,7 @@ namespace CrossSL
             else
             {
                 var dInstr = GetInstructionFromStmt(unaryOpExpr.GetParent<Statement>());
-                xSLHelper.Error("Unary operator '" + unaryOpExpr.Operator + "' is not supported", dInstr);
+                Helper.Error("Unary operator '" + unaryOpExpr.Operator + "' is not supported", dInstr);
             }
 
             return result;
