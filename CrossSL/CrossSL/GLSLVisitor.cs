@@ -131,13 +131,17 @@ namespace CrossSL
                 {
                     var left = (MemberReferenceExpression) assignmentExpr.Left;
                     var memberRef = left.Annotation<IMemberDefinition>();
-                    var refVar = RefVariables.Last(var => var.Definition == memberRef);
 
-                    if (assignmentExpr.Right.IsType<ObjectCreateExpression>() ||
-                        assignmentExpr.Right.IsType<PrimitiveExpression>())
-                        RefVariables[RefVariables.IndexOf(refVar)].Value = rightRes;
-                    else
-                        RefVariables[RefVariables.IndexOf(refVar)].Value = "Exception";
+                    if (RefVariables.Any(var => var.Definition == memberRef))
+                    {
+                        var refVar = RefVariables.Last(var => var.Definition == memberRef);
+
+                        if (assignmentExpr.Right.IsType<ObjectCreateExpression>() ||
+                            assignmentExpr.Right.IsType<PrimitiveExpression>())
+                            RefVariables[RefVariables.IndexOf(refVar)].Value = rightRes;
+                        else
+                            RefVariables[RefVariables.IndexOf(refVar)].Value = "Exception";
+                    }
                 }
 
             return result.Append(rightRes);
@@ -199,17 +203,17 @@ namespace CrossSL
             var result = new StringBuilder();
 
             if (!(memberRefExpr.Target is ThisReferenceExpression))
-                result.Append(memberRefExpr.Target.AcceptVisitor(this, data));
+                result = memberRefExpr.Target.AcceptVisitor(this, data);
 
             var memberRef = memberRefExpr.Annotation<IMemberDefinition>();
 
-            if (memberRef != null)
+            if (result != null && memberRef != null)
             {
                 var instr = GetInstructionFromStmt(memberRefExpr.GetParent<Statement>());
                 RefVariables.Add(new VariableDesc {Definition = memberRef, Instruction = instr});
             }
 
-            return result.Append(memberRefExpr.MemberName);
+            return result != null ? result.Append(memberRefExpr.MemberName) : new StringBuilder();
         }
 
         /// <summary>
@@ -243,7 +247,7 @@ namespace CrossSL
             {
                 var dInstr = GetInstructionFromStmt(primitiveExpr.GetParent<Statement>());
                 Helper.Warning("Type 'double' is not supported. " +
-                                  "Value will be casted to type 'float'.", dInstr);
+                               "Value will be casted to type 'float'.", dInstr);
             }
 
             if (primitiveExpr.Value is float || primitiveExpr.Value is double)
@@ -266,6 +270,22 @@ namespace CrossSL
             }
 
             return result.Append(primitiveExpr.Value);
+        }
+
+        /// <summary>
+        ///     Translates a type reference, e.g. "OtherClass.".
+        /// </summary>
+        public override StringBuilder VisitTypeReferenceExpression(TypeReferenceExpression typeRefExpr, int data)
+        {
+            var memberRef = typeRefExpr.GetParent<MemberReferenceExpression>();
+            if (memberRef == null) return new StringBuilder();
+
+            var instr = GetInstructionFromStmt(typeRefExpr.GetParent<Statement>());
+            var name = memberRef.MemberName;
+
+            Helper.Error("Static member '" + name + "' of class '" + typeRefExpr.Type + "' cannot be used", instr);
+
+            return null;
         }
 
         /// <summary>
@@ -348,7 +368,7 @@ namespace CrossSL
                 }
 
             // otherwise just call the method
-            if (declType != typeof(xSLShader))
+            if (declType != typeof (xSLShader))
                 RefMethods.Add(methodDef);
 
             return result.Method(methodDef.Name, args);

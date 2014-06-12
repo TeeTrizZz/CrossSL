@@ -229,10 +229,7 @@ namespace CrossSL
             throw new NotImplementedException();
         }
 
-        public StringBuilder VisitTypeReferenceExpression(TypeReferenceExpression typeReferenceExpression, int data)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract StringBuilder VisitTypeReferenceExpression(TypeReferenceExpression typeRefExpr, int data);
 
         public abstract StringBuilder VisitUnaryOperatorExpression(UnaryOperatorExpression unaryOpExpr, int data);
 

@@ -42,7 +42,7 @@ namespace Example
             _vUV = FuUV;
             _vNormal = float3.Normalize(new float3x3(FuseeMV)*FuNormal);
 
-            glPosition = FuseeMVP*new float4(FuVertex, 1.0f);
+            xslPosition = FuseeMVP*new float4(FuVertex, 1.0f);
         }
 
         // Fragment Shader
@@ -97,8 +97,8 @@ namespace Example
                         ref endIntensity);
             }
 
-            glFragColor = new float4(0,0,0,0);
-            glPosition = new float4(0, 0, 0, 0);
+            xslFragColor = new float4(0,0,0,0);
+            //xslPosition = new float4(0, 0, 0, 0);
             //glFragColor = texture2D(_texture1, _vUV)*endIntensity;
         }
     }

@@ -16,12 +16,6 @@ namespace CrossSL
         FragmentShader
     }
 
-    internal enum xSLEnvironment
-    {
-        GLSL,
-        GLSLES
-    }
-
     internal class xSLVersion
     {
         internal static string[][] VIDs =

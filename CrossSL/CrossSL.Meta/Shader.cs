@@ -294,7 +294,7 @@ namespace CrossSL.Meta
             return new float4(1, 1, 1, 1);
         }
 
-        // datatypes
+        // data types
         [xSLDataType("sampler2D")]
         protected struct sampler2D
         {

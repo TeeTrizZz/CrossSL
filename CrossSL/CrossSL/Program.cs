@@ -56,6 +56,7 @@ namespace CrossSL
         internal TypeDefinition Type;
         internal ShaderTarget Target;
         internal xSLDebug DebugFlags;
+        internal CustomAttribute[] Precision;
         internal Collection<VariableDesc> Variables;
         internal IEnumerable<FunctionDesc>[] Funcs;
         internal IEnumerable<Instruction> Instructions;
@@ -71,7 +72,7 @@ namespace CrossSL
             if (methodCount <= 1 && method != null && method.IsVirtual) return true;
 
             var instr = (method != null) ? method.Body.Instructions[0] : null;
-            Helper.Error("You didn't override method '" + methodName + "' properly", instr);
+            Helper.Error("You did not override method '" + methodName + "' properly", instr);
 
             return false;
         }
@@ -159,10 +160,8 @@ namespace CrossSL
 
                 if (targetAttr == null)
                 {
-                    shaderDesc.Target = new ShaderTarget
-                    {Envr = xSLEnvironment.GLSL, Version = 0};
-
-                    Console.WriteLine("  => WARNING: Couldn't find [xSLTarget]. Compiling shader as GLSL 1.1.");
+                    shaderDesc.Target = new ShaderTarget {Envr = xSLEnvironment.OpenGL, Version = 0};
+                    Console.WriteLine("  => WARNING: Could not find [xSLTarget]. Compiling shader as GLSL 1.1.");
                 }
                 else
                 {
@@ -174,11 +173,11 @@ namespace CrossSL
                     switch (typeName)
                     {
                         case "GLSL":
-                            shaderTarget.Envr = xSLEnvironment.GLSL;
+                            shaderTarget.Envr = xSLEnvironment.OpenGL;
                             break;
 
                         case "GLSLES":
-                            shaderTarget.Envr = xSLEnvironment.GLSLES;
+                            shaderTarget.Envr = xSLEnvironment.OpenGLES;
                             break;
                     }
 
@@ -192,7 +191,7 @@ namespace CrossSL
                 if (debugAttr == null)
                 {
                     shaderDesc.DebugFlags = xSLDebug.None;
-                    Console.WriteLine("  => WARNING: Couldn't find [xSLDebug]. Debugging has been disabled.");
+                    Console.WriteLine("  => WARNING: Could not find [xSLDebug]. Debugging has been disabled.");
                 }
                 else
                 {
@@ -211,6 +210,17 @@ namespace CrossSL
 
                 MethodDefinition fragmentMain;
                 if (!MethodExists(asmType, "FragmentShader", out fragmentMain)) continue;
+
+                // get their precission attributes
+                var vertPrecAttr = vertexMain.CustomAttributes.FirstOrDefault(
+                    attrType => attrType.AttributeType.IsType<xSLPrecisionAttribute>());
+
+                var fragPrecAttr = fragmentMain.CustomAttributes.FirstOrDefault(
+                    attrType => attrType.AttributeType.IsType<xSLPrecisionAttribute>());
+
+                shaderDesc.Precision = new CustomAttribute[2];
+                shaderDesc.Precision[(int) xSLShaderType.VertexShader] = vertPrecAttr;
+                shaderDesc.Precision[(int) xSLShaderType.FragmentShader] = fragPrecAttr;
 
                 // check if there are additional constructors for field/property initialization
                 var ctorMethods = asmType.Methods.Where(asmMethod => asmMethod.IsConstructor);
@@ -240,34 +250,53 @@ namespace CrossSL
                 var variables = new Collection<VariableDesc>();
                 var varTypes = Enum.GetNames(typeof (xSLVariableType));
 
-                // read and gather fields
+                // read and gather fields and backing fields
                 foreach (var asmField in asmType.Fields)
                 {
                     var varDesc = new VariableDesc {Definition = asmField};
 
-                    var attrCt = asmField.CustomAttributes.Count(attr => varTypes.Contains(attr.AttributeType.Name));
-                    var validFd = asmField.HasConstant ^ attrCt == 1;
+                    var fdName = asmField.Name;
+                    var fdType = asmField.FieldType.ToType();
 
-                    if (validFd)
+                    var attrs = asmField.CustomAttributes;
+                    var attrCt = attrs.Count(attr => varTypes.Contains(attr.AttributeType.Name));
+
+                    var isProp = asmField.Name.Contains("<");
+
+                    if (isProp)
+                    {
+                        // ReSharper disable once StringIndexOfIsCultureSpecific.1
+                        fdName = fdName.Remove(0, 1).Remove(fdName.IndexOf(">") - 1);
+
+                        var asmProp = asmType.Properties.First(prop => prop.Name == fdName);
+                        varDesc.Definition = asmProp;
+
+                        attrs = asmProp.CustomAttributes;
+                        fdType = asmProp.PropertyType.ToType();
+                    }
+
+                    var validFd = asmField.HasConstant ^ attrCt == 1 ^ isProp;
+                    var varType = (isProp) ? "Property '" : "Field '";
+
+                    if (asmField.IsStatic)
+                        Helper.Error(varType + fdName + "' cannot be static");
+                    else if (validFd)
                     {
                         var fdAttr = xSLVariableType.xSLConstAttribute;
 
                         if (!asmField.HasConstant)
                         {
-                            var fdAttrName =
-                                asmField.CustomAttributes.First(attr => varTypes.Contains(attr.AttributeType.Name));
+                            var fdAttrName = attrs.First(attr => varTypes.Contains(attr.AttributeType.Name));
                             fdAttr = (xSLVariableType) Array.IndexOf(varTypes, fdAttrName.AttributeType.Name);
                         }
                         else
                             varDesc.Value = asmField.Constant;
 
                         // resolve data type of variable
-                        var fdType = asmField.FieldType.ToType();
-
                         if (!xSLDataType.Types.ContainsKey(fdType))
                         {
                             var strAdd = (fdType != typeof (Object)) ? " type '" + fdType.Name + "' " : " a type ";
-                            Helper.Error("Field '" + asmField.Name + "' is of" + strAdd + "which is not supported.");
+                            Helper.Error(varType + asmField.Name + "' is of" + strAdd + "which is not supported.");
                         }
 
                         varDesc.DataType = fdType;
@@ -276,35 +305,7 @@ namespace CrossSL
                         variables.Add(varDesc);
                     }
                     else
-                        Helper.Error("Field '" + asmField.Name + "' is neither a constant nor has valid attributes");
-                }
-
-                // read and gather properties
-                foreach (var asmProp in asmType.Properties)
-                {
-                    var attrCt = asmProp.CustomAttributes.Count(attr => varTypes.Contains(attr.AttributeType.Name));
-
-                    if (attrCt == 1)
-                    {
-                        var prAttrName =
-                            asmProp.CustomAttributes.First(attr => varTypes.Contains(attr.AttributeType.Name));
-                        var prAttr = (xSLVariableType) Array.IndexOf(varTypes, prAttrName.AttributeType.Name);
-
-                        // resolve data type of variable
-                        var prType = asmProp.PropertyType.ToType();
-
-                        if (!xSLDataType.Types.ContainsKey(prType))
-                        {
-                            var strAdd = (prType != typeof (Object)) ? " type '" + prType.Name + "' " : " a type ";
-                            Helper.Error("Property '" + asmProp.Name + "' is of" + strAdd + "which is not supported.");
-                        }
-
-                        var varDesc = new VariableDesc {Definition = asmProp, DataType = prType, Attribute = prAttr};
-
-                        variables.Add(varDesc);
-                    }
-                    else
-                        Helper.Error("Property '" + asmProp.Name + "' is neither a constant nor has valid attributes");
+                        Helper.Error(varType + asmField.Name + "' is neither a constant nor has valid attributes");
                 }
 
                 shaderDesc.Variables = variables;
@@ -346,25 +347,13 @@ namespace CrossSL
                         var instr = constVar.Instruction;
 
                         if (globVar.Attribute != xSLVariableType.xSLConstAttribute)
-                        {
-                            Helper.Error("Variable '" + name + "' is used as a constant" +
-                                         " but not marked as 'const' or '[xSLConst]'", instr);
-                            continue;
-                        }
-
-                        if (globVar.Value != null && constVar.Value != null)
-                        {
+                            Helper.Error("Variable '" + name + "' is used as a constant but not marked as such'", instr);
+                        else if (globVar.Value != null && constVar.Value != null)
                             Helper.Error("Constant '" + name + "' cannot be set more than once", instr);
-                            continue;
-                        }
-
-                        if (constVar.Value is String)
-                        {
+                        else if (constVar.Value is String)
                             Helper.Error("Constant '" + name + "' was initialized with an invalid value", instr);
-                            continue;
-                        }
-
-                        shaderDesc.Variables[index].Value = constVar.Value;
+                        else
+                            shaderDesc.Variables[index].Value = constVar.Value;
                     }
                 }
 
@@ -420,7 +409,7 @@ namespace CrossSL
                 }
 
                 // save shaders or errors into the assembly
-                var genShader = metaAsm.MainModule.Types.First(type => type.ToType() == typeof(xSL<>));
+                var genShader = metaAsm.MainModule.Types.First(type => type.ToType() == typeof (xSL<>));
                 var instShader = new GenericInstanceType(genShader);
 
                 var asmTypeImport = metaAsm.MainModule.Import(asmType);
@@ -555,7 +544,7 @@ namespace CrossSL
                 memberVar.Attribute = globVar.Attribute;
                 memberVar.DataType = globVar.DataType;
                 memberVar.IsReferenced = true;
-                
+
                 varDescs.Add(memberVar);
             }
 
@@ -636,6 +625,62 @@ namespace CrossSL
             }
 
             if (Helper.Abort) return null;
+
+            // add precision to output
+            var defPrec = String.Empty;
+
+            if (shaderDescRef.Precision[(int) shaderType] != null)
+            {
+                var prec = new StringBuilder();
+                var precAttr = shaderDescRef.Precision[(int) shaderType];
+
+                var floatPrec = precAttr.Properties.FirstOrDefault(prop => prop.Name == "floatPrecision");
+                var intPrec = precAttr.Properties.FirstOrDefault(prop => prop.Name == "intPrecision");
+
+                if (floatPrec.Name == null && intPrec.Name == null)
+                    defPrec = "Found [xSLPrecision] for '" + shaderType + "()' but no precision was set";
+                else
+                {
+                    if (floatPrec.Name != null)
+                    {
+                        var floatPrecVal = ((xSLPrecision) floatPrec.Argument.Value).ToString();
+                        prec.Append("precision ").Append(floatPrecVal.ToLower()).Append("p");
+                        prec.Append(" float;").NewLine();
+                    }
+                    else if (shaderDesc.Target.Envr == xSLEnvironment.OpenGLES)
+                        if (shaderType == xSLShaderType.FragmentShader)
+                            defPrec = "Target GLSLES requires to set float precision for 'FragmentShader()'";
+
+                    if (intPrec.Name != null)
+                    {
+                        var intPrecVal = ((xSLPrecision) intPrec.Argument.Value).ToString();
+                        prec.Append("precision ").Append(intPrecVal.ToLower()).Append("p");
+                        prec.Append(" int;").NewLine();
+                    }
+
+                    if (precAttr.ConstructorArguments.Count > 0)
+                    {
+                        var condition = (xSLEnvironment) precAttr.ConstructorArguments[0].Value;
+                        var ifdef = (condition == xSLEnvironment.OpenGL) ? "#ifndef" : "#ifdef";
+
+                        prec.Replace(Environment.NewLine, Environment.NewLine + "\t").Length--;
+                        prec = new StringBuilder(ifdef).Append(" GL_ES").NewLine().Intend().Append(prec);
+                        prec.Append("#endif").NewLine();
+                    }
+
+                    result.Append(prec.Replace("medium", "med").NewLine());
+                }
+            }
+            else if (shaderDesc.Target.Envr == xSLEnvironment.OpenGLES)
+                if (shaderType == xSLShaderType.FragmentShader)
+                    defPrec = "Target GLSLES requires [xSLPrecision] to set float precision for 'FragmentShader()'";
+
+            // default precision
+            if (defPrec != String.Empty)
+            {
+                Helper.Warning(defPrec + ". Using high precision for float as default");
+                result.Append("precision highp float;");
+            }
 
             // add variables to shader output
             foreach (var varDesc in varDescs.Distinct().OrderBy(var => var.Attribute))
