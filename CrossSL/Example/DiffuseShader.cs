@@ -4,7 +4,7 @@ using Fusee.Math;
 
 namespace Example
 {
-    [xSLTarget(xSLTarget.GLSLES.V100)]
+    [xSLTarget(xSLTarget.GLSLMix.V110)]
     [xSLDebug(xSLDebug.PreCompile | xSLDebug.SaveToFile | xSLDebug.ThrowException)]
     public class DiffuseShader : xSLShader
     {
@@ -28,7 +28,7 @@ namespace Example
         [xSLUniform] internal float3 FuseeL0Pos;
         [xSLUniform] internal float3 FuseeL0Dir;
         [xSLUniform] internal float4 FuseeL0Diffuse;
-        [xSLUniform] internal float4 FuseeL0Ambient = new float4(10, 5, 4, 1);
+        [xSLUniform] internal float4 FuseeL0Ambient;
         [xSLUniform] internal float FuseeL0Spotangle;
 
         [xSLUniform] internal float4x4 FuseeV;
@@ -36,7 +36,7 @@ namespace Example
         // Vertex Shader
         protected override void VertexShader()
         {
-            var vViewPosTemp = FuseeMV*new float4(FuVertex, 1) * 10;
+            var vViewPosTemp = FuseeMV*new float4(FuVertex, 1)*10;
             _vViewPos = new float3(vViewPosTemp)/vViewPosTemp.w;
 
             _vUV = FuUV;
@@ -97,7 +97,7 @@ namespace Example
                         ref endIntensity);
             }
 
-            xslFragColor = new float4(0,0,0,0);
+            xslFragColor = new float4(0, 0, 0, 0);
             //xslPosition = new float4(0, 0, 0, 0);
             //glFragColor = texture2D(_texture1, _vUV)*endIntensity;
         }

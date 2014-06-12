@@ -27,8 +27,42 @@ namespace CrossSL
         internal static StringBuilder Errors { get; set; }
 
         /// <summary>
+        ///     Prints a warning to the console.
+        /// </summary>
+        /// <param name="msg">The warning message.</param>
+        /// <param name="findSeq">The corresponding instruction.</param>
+        internal static void Warning(string msg, Instruction findSeq = null)
+        {
+            msg = "    => WARNING: " + msg;
+            WriteToConsole(msg, findSeq);
+        }
+
+        /// <summary>
+        ///     Prints an error to the console and sets <see cref="Abort" /> to [true].
+        /// </summary>
+        /// <param name="msg">The error message.</param>
+        /// <param name="findSeq">The corresponding instruction.</param>
+        internal static void Error(string msg, Instruction findSeq = null)
+        {
+            msg = "    => ERROR:   " + msg;
+            Errors.Append(WriteToConsole(msg, findSeq)).NewLine();
+
+            Abort = true;
+        }
+
+        /// <summary>
+        ///     Resets <see cref="Abort" /> and <see cref="Errors" /> fields of this class.
+        /// </summary>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public static void Reset()
+        {
+            Abort = false;
+            Errors = new StringBuilder();
+        }
+
+        /// <summary>
         ///     Extension for TypeReference:
-        ///         Resolves the type of a given <see cref="TypeReference" />.
+        ///     Resolves the type of a given <see cref="TypeReference" />.
         /// </summary>
         /// <param name="typeRef">The <see cref="TypeReference" /> to resolve.</param>
         /// <returns>The resolved type or <see cref="System.Object" /> if type is unknown.</returns>
@@ -39,7 +73,7 @@ namespace CrossSL
 
         /// <summary>
         ///     Extension for TypeDefinion:
-        ///         Resolves the type of a given <see cref="TypeDefinition" />.
+        ///     Resolves the type of a given <see cref="TypeDefinition" />.
         /// </summary>
         /// <param name="typeDef">The <see cref="TypeDefinition" /> to resolve.</param>
         /// <returns>The resolved type or <see cref="System.Object" /> if type is unknown.</returns>
@@ -52,7 +86,7 @@ namespace CrossSL
 
         /// <summary>
         ///     Extension for TypeReference:
-        ///         Determines whether the given <see cref="TypeReference" /> is of a specific type.
+        ///     Determines whether the given <see cref="TypeReference" /> is of a specific type.
         /// </summary>
         /// <typeparam name="T">The type to compare to.</typeparam>
         /// <param name="typeRef">The <see cref="TypeReference" /> to compare.</param>
@@ -64,38 +98,38 @@ namespace CrossSL
 
         /// <summary>
         ///     Extension for TypeDefinion:
-        ///         Determines whether the given <see cref="TypeDefinition" /> is of a specific type.
+        ///     Determines whether the given <see cref="TypeDefinition" /> is of a specific type.
         /// </summary>
         /// <typeparam name="T">The type to compare to.</typeparam>
         /// <param name="typeDef">The <see cref="TypeDefinition" /> to compare.</param>
         /// <returns></returns>
         internal static bool IsType<T>(this TypeDefinition typeDef)
         {
-            return (typeDef.ToType() == typeof(T));
+            return (typeDef.ToType() == typeof (T));
         }
 
         /// <summary>
         ///     Extension for Expression:
-        ///         Determines whether the given <see cref="Expression" /> is of a specific type.
+        ///     Determines whether the given <see cref="Expression" /> is of a specific type.
         /// </summary>
         /// <typeparam name="T">The type to compare to.</typeparam>
         /// <param name="expr">The <see cref="Expression" /> to compare.</param>
         /// <returns></returns>
         internal static bool IsType<T>(this Expression expr)
         {
-            return (expr.GetType() == typeof(T));
+            return (expr.GetType() == typeof (T));
         }
 
         /// <summary>
-        /// Prints a message to the console.
+        ///     Prints a message to the console.
         /// </summary>
         /// <param name="msg">The message.</param>
         /// <param name="findSeq">The corresponding instruction.</param>
         /// <returns>The messages posted to the console.</returns>
         /// <remarks>
-        /// Some instructions have a SequencePoint which points to the specific line in
-        /// the source file. If the given line has no SequencePoint, this method will step
-        /// backwards until a SequencePoint is found (only if verbose mode is active).
+        ///     Some instructions have a SequencePoint which points to the specific line in
+        ///     the source file. If the given line has no SequencePoint, this method will step
+        ///     backwards until a SequencePoint is found (only if verbose mode is active).
         /// </remarks>
         private static string WriteToConsole(string msg, Instruction findSeq)
         {
@@ -118,40 +152,6 @@ namespace CrossSL
 
             Console.WriteLine(message.Dot());
             return message.ToString();
-        }
-
-        /// <summary>
-        ///     Prints a warning to the console.
-        /// </summary>
-        /// <param name="msg">The warning message.</param>
-        /// <param name="findSeq">The corresponding instruction.</param>
-        internal static void Warning(string msg, Instruction findSeq = null)
-        {
-            msg = "    => WARNING: " + msg;
-            WriteToConsole(msg, findSeq);
-        }
-
-        /// <summary>
-        ///     Prints an error to the console and sets <see cref="Abort" /> to [true].
-        /// </summary>
-        /// <param name="msg">The error message.</param>
-        /// <param name="findSeq">The corresponding instruction.</param>
-        internal static void Error(string msg, Instruction findSeq = null)
-        {
-            msg = "    => ERROR:   " + msg; 
-            Errors.Append(WriteToConsole(msg, findSeq)).NewLine();
-
-            Abort = true;
-        }
-
-        /// <summary>
-        /// Resets <see cref="Abort"/> and <see cref="Errors"/> fields of this class.
-        /// </summary>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public static void Reset()
-        {
-            Abort = false;
-            Errors = new StringBuilder();
         }
     }
 }

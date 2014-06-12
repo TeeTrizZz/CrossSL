@@ -5,10 +5,9 @@ namespace CrossSL.Meta
     // ReSharper disable InconsistentNaming
     // ReSharper disable UnusedParameter.Local
 
-    [AttributeUsage(AttributeTargets.Struct, AllowMultiple = false)]
-    public class xSLDataTypeAttribute : Attribute
+    public class xSLMappingAttribute : Attribute
     {
-        public xSLDataTypeAttribute(string GLSL)
+        public xSLMappingAttribute(string GLSL)
         {
             // dummy implementation            
         }
@@ -42,51 +41,6 @@ namespace CrossSL.Meta
         // dummy implementation
     }
 
-    public enum xSLEnvironment
-    {
-        OpenGL,
-        OpenGLES
-    }
-
-    public class xSLTarget
-    {
-        public enum GLSL
-        {
-            V110,
-            V120,
-            V130,
-            V140,
-            V150,
-            V330,
-            V400,
-            V420,
-            V430,
-            V440,
-        }
-
-        public enum GLSLES
-        {
-            V100
-        }
-    }
-
-    [Flags]
-    public enum xSLDebug
-    {
-        None = 0,
-        IgnoreShader = 1,
-        PreCompile = 2,
-        SaveToFile = 4,
-        ThrowException = 8
-    }
-
-    public enum xSLPrecision
-    {
-        Low,
-        Medium,
-        High
-    }
-
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public sealed class xSLPrecisionAttribute : Attribute
     {
@@ -116,6 +70,11 @@ namespace CrossSL.Meta
         {
             // dummy constructor
         }
+
+        public xSLTargetAttribute(xSLTarget.GLSLMix version)
+        {
+            // dummy constructor
+        }
     }
 
     [AttributeUsage(AttributeTargets.Class)]
@@ -124,7 +83,7 @@ namespace CrossSL.Meta
         public xSLDebugAttribute(xSLDebug setting)
         {
             // dummy constructor
-        }  
+        }
     }
 
     // ReSharper restore InconsistentNaming

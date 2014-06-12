@@ -17,15 +17,17 @@ namespace CrossSL
     internal abstract class ShaderVisitor : IAstVisitor<int, StringBuilder>
     {
         protected DecompilerContext DecContext;
+        protected AstNode TopNode;
 
         public StringBuilder Result { get; protected set; }
 
         public Collection<MethodDefinition> RefMethods { get; protected set; }
-        public Collection<VariableDesc> RefVariables { get; protected set; } 
+        public Collection<VariableDesc> RefVariables { get; protected set; }
 
         internal ShaderVisitor(AstNode methodBody, DecompilerContext decContext)
         {
             DecContext = decContext;
+            TopNode = methodBody;
 
             // replaces every "x = Plus(x, y)" by "x += y", etc.
             var transform1 = (IAstTransform) new ReplaceMethodCallsWithOperators(decContext);
@@ -41,6 +43,11 @@ namespace CrossSL
 
             RefMethods = new Collection<MethodDefinition>();
             RefVariables = new Collection<VariableDesc>();
+        }
+
+        internal void Translate()
+        {
+            Result = new StringBuilder().Block(TopNode.AcceptVisitor(this, 0));
         }
 
         protected T GetAnnotations<T>(Statement stmt) where T : class
@@ -88,8 +95,8 @@ namespace CrossSL
 
         protected string MapDataTypeIfValid(AstType node, Type type)
         {
-            if (type != null && xSLDataType.Types.ContainsKey(type))
-                return xSLDataType.Types[type];
+            if (type != null && xSLTypeMapping.Types.ContainsKey(type))
+                return xSLTypeMapping.Types[type];
 
             var instr = GetInstructionFromStmt(node.GetParent<Statement>());
             Helper.Error("Type '" + type + "' is not supported", instr);
@@ -151,7 +158,7 @@ namespace CrossSL
         }
 
         public abstract StringBuilder VisitDirectionExpression(DirectionExpression directionExpr, int data);
-        
+
         public abstract StringBuilder VisitIdentifierExpression(IdentifierExpression identifierExpr, int data);
 
         public StringBuilder VisitIndexerExpression(IndexerExpression indexerExpression, int data)

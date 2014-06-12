@@ -284,20 +284,23 @@ namespace CrossSL.Meta
         protected abstract void FragmentShader();
 
         // BUILT-IN FUNCTIONS
+        [xSLMapping("texture2D")]
         protected float4 Texture2D(sampler2D sampler, float2 coord)
         {
             return new float4(1, 1, 1, 1);
         }
 
+        [xSLMapping("texture2D")]
         protected float4 Texture2D(sampler2D sampler, float2 coord, float bias)
         {
             return new float4(1, 1, 1, 1);
         }
 
         // data types
-        [xSLDataType("sampler2D")]
+        [xSLMapping("sampler2D")]
         protected struct sampler2D
         {
+            // dummy implementation
         }
     }
 
@@ -337,7 +340,7 @@ namespace CrossSL.Meta
         {
             if (!_translated)
                 Debug.WriteLine("xSL: Shader '" + typeof (TShader).Name +
-                    "' has not been translated.");
+                                "' has not been translated.");
 
             if (_error != String.Empty)
                 throw new ApplicationException(_error);

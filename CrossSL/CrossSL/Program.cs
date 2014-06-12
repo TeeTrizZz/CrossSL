@@ -7,6 +7,7 @@ using System.Text;
 using CrossSL.Meta;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Ast;
+using ICSharpCode.NRefactory.CSharp;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Pdb;
@@ -47,6 +48,7 @@ namespace CrossSL
     internal struct ShaderTarget
     {
         internal xSLEnvironment Envr;
+        internal int VersionID;
         internal int Version;
     }
 
@@ -80,8 +82,8 @@ namespace CrossSL
         private static void Main(string[] args)
         {
             // update available data types & co.
-            xSLDataType.UpdateTypes();
-            xSLMathMapping.UpdateTypes();
+            xSLTypeMapping.UpdateTypes();
+            xSLMethodMapping.UpdateMapping();
 
             //var inputPath = @"..\..\..\Test\XCompTests.exe";
             const string inputPath =
@@ -149,7 +151,7 @@ namespace CrossSL
 
                     if ((shaderDesc.DebugFlags & xSLDebug.IgnoreShader) != 0)
                     {
-                        Console.WriteLine("  => Found [xSLDebug] with 'IgnoreShader' flag. Shader has been ignored.");
+                        Console.WriteLine("  => Found [xSLDebug] with 'IgnoreShader' flag. Shader skipped.");
                         continue;
                     }
                 }
@@ -160,7 +162,7 @@ namespace CrossSL
 
                 if (targetAttr == null)
                 {
-                    shaderDesc.Target = new ShaderTarget {Envr = xSLEnvironment.OpenGL, Version = 0};
+                    shaderDesc.Target = new ShaderTarget {Envr = xSLEnvironment.OpenGL, Version = 110, VersionID = 0};
                     Console.WriteLine("  => WARNING: Could not find [xSLTarget]. Compiling shader as GLSL 1.1.");
                 }
                 else
@@ -168,7 +170,7 @@ namespace CrossSL
                     var typeName = targetAttr.ConstructorArguments[0].Type.Name;
                     var versionID = (int) targetAttr.ConstructorArguments[0].Value;
 
-                    var shaderTarget = new ShaderTarget {Version = versionID};
+                    var shaderTarget = new ShaderTarget {VersionID = versionID};
 
                     switch (typeName)
                     {
@@ -179,11 +181,24 @@ namespace CrossSL
                         case "GLSLES":
                             shaderTarget.Envr = xSLEnvironment.OpenGLES;
                             break;
+
+                        case "GLSLMix":
+                            shaderTarget.Envr = xSLEnvironment.OpenGLMix;
+                            break;
                     }
 
+                    var vStr = xSLVersion.VIDs[(int) shaderTarget.Envr][versionID];
+
+                    shaderTarget.Version = Int32.Parse(vStr);
                     shaderDesc.Target = shaderTarget;
 
-                    var vStr = xSLVersion.VIDs[(int) shaderTarget.Envr][versionID];
+                    if (shaderTarget.Envr == xSLEnvironment.OpenGLMix)
+                    {
+                        typeName = "GLSL 1.10 & GLSLES";
+                        vStr = "100";
+                    }
+
+                    vStr = vStr.Insert(1, ".");
                     Console.WriteLine("  => Found [xSLTarget]. Compiling shader as " + typeName + " " + vStr + ".");
                 }
 
@@ -293,7 +308,7 @@ namespace CrossSL
                             varDesc.Value = asmField.Constant;
 
                         // resolve data type of variable
-                        if (!xSLDataType.Types.ContainsKey(fdType))
+                        if (!xSLTypeMapping.Types.ContainsKey(fdType))
                         {
                             var strAdd = (fdType != typeof (Object)) ? " type '" + fdType.Name + "' " : " a type ";
                             Helper.Error(varType + asmField.Name + "' is of" + strAdd + "which is not supported.");
@@ -315,16 +330,16 @@ namespace CrossSL
 
                 shaderDesc.Funcs = new IEnumerable<FunctionDesc>[2];
 
-                var vertexFuncs = Translate(vertexMain);
+                var vertexFuncs = Translate(shaderDesc.Target, vertexMain);
                 shaderDesc.Funcs[(int) xSLShaderType.VertexShader] = vertexFuncs;
 
-                var fragmentFuncs = Translate(fragmentMain);
+                var fragmentFuncs = Translate(shaderDesc.Target, fragmentMain);
                 shaderDesc.Funcs[(int) xSLShaderType.FragmentShader] = fragmentFuncs;
 
                 // check correct use of constants
                 foreach (var ctor in customCtors)
                 {
-                    var funcs = Translate(ctor);
+                    var funcs = Translate(shaderDesc.Target, ctor);
 
                     var allVars = funcs.SelectMany(func => func.Variables).ToList();
                     var allGlobVars = allVars.Where(variables.Contains).ToList();
@@ -376,7 +391,31 @@ namespace CrossSL
 
                     if (!Helper.Abort && (xSLDebug.PreCompile & shaderDesc.DebugFlags) != 0)
                     {
-                        // test test
+                        if (GLSLCompiler.CanCheck(shaderDesc.Target.Version))
+                        {
+                            if (shaderDesc.Target.Envr == xSLEnvironment.OpenGLES)
+                                Helper.Warning("Shader will be tested on OpenGL but target is OpenGL ES");
+
+                            if (shaderDesc.Target.Envr == xSLEnvironment.OpenGLMix)
+                                Helper.Warning("Shader will only be tested on OpenGL but target is OpenGL and OpenGL ES");
+
+                            var vertTest = GLSLCompiler.CreateShader(vertexResult, xSLShaderType.VertexShader);
+                            vertTest.Length = Math.Max(0, vertTest.Length - 3);
+                            vertTest = vertTest.Replace("0(", "        => 0(");
+
+                            var fragTest = GLSLCompiler.CreateShader(fragmentResult, xSLShaderType.FragmentShader);
+                            fragTest.Length = Math.Max(0, fragTest.Length - 3);
+                            fragTest = fragTest.Replace("0(", "        => 0(");
+
+                            if (vertTest.ToString() != String.Empty)
+                                Helper.Error("OpenGL found problems while compiling vertex shader:\n" + vertTest);
+                            else if (fragTest.ToString() != String.Empty)
+                                Helper.Error("OpenGL found problems while compiling fragment shader:\n" + fragTest);
+                            else
+                                Console.WriteLine("        => Test was successful. OpenGL did not find any problems.");
+                        }
+                        else
+                            Helper.Warning("Cannot test shader as your graphics card does not support GLSL.");
                     }
 
                     if (!Helper.Abort && (xSLDebug.SaveToFile & shaderDesc.DebugFlags) != 0)
@@ -685,7 +724,7 @@ namespace CrossSL
             // add variables to shader output
             foreach (var varDesc in varDescs.Distinct().OrderBy(var => var.Attribute))
             {
-                var dataType = xSLDataType.Types[varDesc.DataType];
+                var dataType = xSLTypeMapping.Types[varDesc.DataType];
 
                 var varType = varDesc.Attribute.ToString().ToLower();
                 varType = varType.Remove(0, 3).Remove(varType.Length - 12);
@@ -713,7 +752,7 @@ namespace CrossSL
         {
             var retType = method.ReturnType.ToType();
 
-            if (!xSLDataType.Types.ContainsKey(retType))
+            if (!xSLTypeMapping.Types.ContainsKey(retType))
             {
                 var strAdd = (retType != typeof (Object)) ? " '" + retType.Name + "'" : String.Empty;
 
@@ -723,7 +762,7 @@ namespace CrossSL
                 return null;
             }
 
-            return new StringBuilder(xSLDataType.Types[retType]);
+            return new StringBuilder(xSLTypeMapping.Types[retType]);
         }
 
         private static StringBuilder JoinParams(MethodDefinition method)
@@ -734,7 +773,7 @@ namespace CrossSL
             {
                 var paramType = param.ParameterType.ToType();
 
-                if (!xSLDataType.Types.ContainsKey(paramType))
+                if (!xSLTypeMapping.Types.ContainsKey(paramType))
                 {
                     var strAdd = (paramType != typeof (Object)) ? " '" + paramType.Name + "'" : String.Empty;
 
@@ -747,7 +786,7 @@ namespace CrossSL
                 var isRef = (param.ParameterType is ByReferenceType);
                 var refStr = (isRef) ? "out " : String.Empty;
 
-                var typeMapped = xSLDataType.Types[paramType];
+                var typeMapped = xSLTypeMapping.Types[paramType];
                 var paramName = param.Name;
 
                 result.Append(refStr).Append(typeMapped).Space();
@@ -760,7 +799,7 @@ namespace CrossSL
             return result;
         }
 
-        private static IEnumerable<FunctionDesc> Translate(MethodDefinition method)
+        private static IEnumerable<FunctionDesc> Translate(ShaderTarget target, MethodDefinition method)
         {
             var allFuncs = new List<FunctionDesc>();
 
@@ -789,24 +828,50 @@ namespace CrossSL
 
             // create AST for method and start traversing
             var methodBody = AstMethodBodyBuilder.CreateMethodBody(method, decContext);
-            var translator = new GLSLVisitor(methodBody, decContext);
+
+            var transVisitor = GetTranslator(target, methodBody, decContext);
+            transVisitor.Translate();
 
             // save information
             var result = new FunctionDesc
             {
                 Definion = method,
                 Signature = sig,
-                Body = translator.Result,
-                Variables = translator.RefVariables
+                Body = transVisitor.Result,
+                Variables = transVisitor.RefVariables
             };
 
             // translate all referenced methods
-            foreach (var refMethod in translator.RefMethods)
+            foreach (var refMethod in transVisitor.RefMethods)
                 if (allFuncs.All(aMethod => aMethod.Definion != refMethod))
-                    allFuncs.AddRange(Translate(refMethod));
+                    allFuncs.AddRange(Translate(target, refMethod));
 
             allFuncs.Add(result);
             return allFuncs;
+        }
+
+        private static ShaderVisitor GetTranslator(ShaderTarget target, AstNode methodBody, DecompilerContext decContext)
+        {
+            switch (target.Envr)
+            {
+                case xSLEnvironment.OpenGL:
+                    switch ((xSLTarget.GLSL) target.VersionID)
+                    {
+                        case xSLTarget.GLSL.V110:
+                            return new GLSLVisitor110(methodBody, decContext);
+
+                        default:
+                            return new GLSLVisitor(methodBody, decContext);
+                    }
+
+                case xSLEnvironment.OpenGLES:
+                    return new GLSLVisitor110(methodBody, decContext);
+
+                case xSLEnvironment.OpenGLMix:
+                    return new GLSLVisitor110(methodBody, decContext);
+            }
+
+            return null;
         }
     }
 }

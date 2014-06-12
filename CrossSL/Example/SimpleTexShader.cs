@@ -4,7 +4,7 @@ using Fusee.Math;
 
 namespace Example
 {
-    [xSLTarget(xSLTarget.GLSLES.V100)]
+    [xSLTarget(xSLTarget.GLSLMix.V110)]
     [xSLDebug(xSLDebug.PreCompile | xSLDebug.SaveToFile)]
     public class SimpleTexShader : xSLShader
     {

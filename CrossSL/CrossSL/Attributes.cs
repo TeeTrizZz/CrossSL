@@ -36,6 +36,10 @@ namespace CrossSL
             new[]
             {
                 "100"
+            },
+            new[]
+            {
+                "110"
             }
         };
     }
@@ -49,7 +53,7 @@ namespace CrossSL
         xSLConstAttribute
     }
 
-    internal static class xSLDataType
+    internal static class xSLTypeMapping
     {
         internal static Dictionary<Type, string> Types = new Dictionary<Type, string>
         {
@@ -71,23 +75,24 @@ namespace CrossSL
         /// </summary>
         internal static void UpdateTypes()
         {
-            var typeAttr = typeof (xSLDataTypeAttribute);
+            var mappingAttr = typeof (xSLMappingAttribute);
             var nestedTypes = typeof (xSLShader).GetNestedTypes(BindingFlags.NonPublic);
-            var dataTypes = nestedTypes.Where(type => type.GetCustomAttribute(typeAttr) != null);
+            var dataTypes = nestedTypes.Where(type => type.GetCustomAttribute(mappingAttr) != null);
 
             foreach (var type in dataTypes)
             {
                 var attrData = CustomAttributeData.GetCustomAttributes(type);
-                var typeData = attrData.First(attr => attr.AttributeType == typeAttr);
+                var typeData = attrData.First(attr => attr.AttributeType == mappingAttr);
                 Types.Add(type, typeData.ConstructorArguments[0].Value.ToString());
             }
         }
     }
 
-    internal static class xSLMathMapping
+    internal static class xSLMethodMapping
     {
         internal static HashSet<Type> Types = new HashSet<Type>
         {
+            typeof (xSLShader),
             typeof (Math)
         };
 
@@ -100,17 +105,32 @@ namespace CrossSL
         };
 
         /// <summary>
-        ///     Resolves all <see cref="Fusee.Math" /> types by reflection at runtime,
-        ///     so that they can change and new types can be added without the need
-        ///     to update this class' <see cref="Types"/> field.
+        ///     Resolves all <see cref="Fusee.Math" /> types and all <see cref="xSLShader" />
+        ///     methods by reflection at runtime, so that they can change and new types can be
+        ///     added without the need to update this class' <see cref="Types" /> field.
         /// </summary>
-        internal static void UpdateTypes()
+        internal static void UpdateMapping()
         {
+            // update types
             var lookUpType = typeof (float4);
             var lookUpNS = lookUpType.Namespace;
             var lookUpAssembly = lookUpType.Assembly;
 
             Types.UnionWith(lookUpAssembly.GetTypes().Where(type => type.Namespace == lookUpNS));
+
+            // update methods
+            var mappingAttr = typeof (xSLMappingAttribute);
+            var allmethods = typeof (xSLShader).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance);
+            var shMethods = allmethods.Where(type => type.GetCustomAttribute(mappingAttr) != null).ToList();
+
+            foreach (var method in shMethods)
+            {
+                var attrData = CustomAttributeData.GetCustomAttributes(method);
+                var methodData = attrData.First(attr => attr.AttributeType == mappingAttr);
+
+                if (!Methods.ContainsKey(method.Name))
+                    Methods.Add(method.Name, methodData.ConstructorArguments[0].Value.ToString());
+            }
         }
     }
 

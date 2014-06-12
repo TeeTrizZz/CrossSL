@@ -15,7 +15,7 @@ namespace CrossSL
         internal GLSLVisitor(AstNode methodBody, DecompilerContext decContext)
             : base(methodBody, decContext)
         {
-            Result = new StringBuilder().Block(methodBody.AcceptVisitor(this, 0));
+            // base
         }
 
         /// <summary>
@@ -203,8 +203,16 @@ namespace CrossSL
             var result = new StringBuilder();
 
             if (!(memberRefExpr.Target is ThisReferenceExpression))
+            {
                 result = memberRefExpr.Target.AcceptVisitor(this, data);
+                if (result != null && result.ToString() != String.Empty) result.Dot();
+            }
 
+            var memberName = memberRefExpr.MemberName;
+            if (memberRefExpr.Target is BaseReferenceExpression)
+                memberName = memberName.Replace("xsl", "gl_");
+
+            // save member reference
             var memberRef = memberRefExpr.Annotation<IMemberDefinition>();
 
             if (result != null && memberRef != null)
@@ -213,7 +221,7 @@ namespace CrossSL
                 RefVariables.Add(new VariableDesc {Definition = memberRef, Instruction = instr});
             }
 
-            return result != null ? result.Append(memberRefExpr.MemberName) : new StringBuilder();
+            return result != null ? result.Append(memberName) : new StringBuilder();
         }
 
         /// <summary>
@@ -360,10 +368,10 @@ namespace CrossSL
 
             // map method if it's a mathematical method or
             // map method if it's a xSLShader class' method
-            if (xSLMathMapping.Types.Contains(declType) || (declType == typeof (xSLShader)))
-                if (xSLMathMapping.Methods.ContainsKey(methodDef.Name))
+            if (xSLMethodMapping.Types.Contains(declType))
+                if (xSLMethodMapping.Methods.ContainsKey(methodDef.Name))
                 {
-                    var mappedName = xSLMathMapping.Methods[methodDef.Name];
+                    var mappedName = xSLMethodMapping.Methods[methodDef.Name];
                     return result.Method(mappedName, args);
                 }
 
