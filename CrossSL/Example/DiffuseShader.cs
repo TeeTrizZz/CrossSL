@@ -1,4 +1,6 @@
-﻿using System;
+﻿#pragma warning disable 0649
+
+using System;
 using CrossSL.Meta;
 using Fusee.Math;
 
@@ -103,3 +105,5 @@ namespace Example
         }
     }
 }
+
+#pragma warning restore 0649

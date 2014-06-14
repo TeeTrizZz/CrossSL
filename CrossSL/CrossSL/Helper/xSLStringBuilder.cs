@@ -3,7 +3,8 @@ using System.Text;
 
 namespace CrossSL
 {
-    internal static class StringBuilderExtension
+    // ReSharper disable once InconsistentNaming
+    internal static class xSLStringBuilder
     {
         internal static StringBuilder Space(this StringBuilder value)
         {

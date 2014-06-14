@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using CrossSL.Meta;
-using ICSharpCode.Decompiler;
 using ICSharpCode.NRefactory.CSharp;
 using Mono.Cecil;
 
@@ -12,12 +11,6 @@ namespace CrossSL
 {
     internal class GLSLVisitor : ShaderVisitor
     {
-        internal GLSLVisitor(AstNode methodBody, DecompilerContext decContext)
-            : base(methodBody, decContext)
-        {
-            // base
-        }
-
         /// <summary>
         ///     Translates a block statement, e.g. a method's body.
         /// </summary>
@@ -251,18 +244,18 @@ namespace CrossSL
             var result = new StringBuilder();
             var cultureInfo = CultureInfo.InvariantCulture.NumberFormat;
 
-            if (primitiveExpr.Value is double)
-            {
-                var dInstr = GetInstructionFromStmt(primitiveExpr.GetParent<Statement>());
-                Helper.Warning("Type 'double' is not supported. " +
-                               "Value will be casted to type 'float'.", dInstr);
-            }
-
-            if (primitiveExpr.Value is float || primitiveExpr.Value is double)
+            if (primitiveExpr.Value is float)
             {
                 var value = ((float) primitiveExpr.Value).ToString(cultureInfo);
                 if (!value.Contains(".")) value += ".0";
                 return result.Append(value).Append("f");
+            }
+
+            if (primitiveExpr.Value is double)
+            {
+                var value = ((double) primitiveExpr.Value).ToString(cultureInfo);
+                if (!value.Contains(".")) value += ".0";
+                return result.Append(value).Append("d");
             }
 
             if (primitiveExpr.Value is uint)
@@ -291,7 +284,7 @@ namespace CrossSL
             var instr = GetInstructionFromStmt(typeRefExpr.GetParent<Statement>());
             var name = memberRef.MemberName;
 
-            Helper.Error("Static member '" + name + "' of class '" + typeRefExpr.Type + "' cannot be used", instr);
+            xSLConsole.Error("Static member '" + name + "' of class '" + typeRefExpr.Type + "' cannot be used", instr);
 
             return null;
         }
@@ -331,7 +324,7 @@ namespace CrossSL
             else
             {
                 var dInstr = GetInstructionFromStmt(unaryOpExpr.GetParent<Statement>());
-                Helper.Error("Unary operator '" + unaryOpExpr.Operator + "' is not supported", dInstr);
+                xSLConsole.Error("Unary operator '" + unaryOpExpr.Operator + "' is not supported", dInstr);
             }
 
             return result;
@@ -370,10 +363,10 @@ namespace CrossSL
 
             // map method if it's a mathematical method or
             // map method if it's a xSLShader class' method
-            if (xSLMethodMapping.Types.Contains(declType))
-                if (xSLMethodMapping.Methods.ContainsKey(methodName))
+            if (ShaderMapping.Types.ContainsKey(declType))
+                if (ShaderMapping.Methods.ContainsKey(methodName))
                 {
-                    var mappedName = xSLMethodMapping.Methods[methodName];
+                    var mappedName = ShaderMapping.Methods[methodName];
                     return result.Method(mappedName, args);
                 }
 

@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using CrossSL.Meta;
 using ICSharpCode.Decompiler;
+using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.Decompiler.Ast.Transforms;
 using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
@@ -17,7 +17,9 @@ namespace CrossSL
 {
     internal abstract partial class ShaderVisitor : IAstVisitor<StringBuilder>
     {
-        protected DecompilerContext DecContext;
+        protected MethodDefinition CurrentMethod;
+        protected ShaderMapping ShaderMapping;
+
         protected AstNode TopNode;
 
         protected internal StringBuilder Result { get; protected set; }
@@ -25,53 +27,42 @@ namespace CrossSL
         protected internal Collection<MethodDefinition> RefMethods { get; protected set; }
         protected internal Collection<VariableDesc> RefVariables { get; protected set; }
 
-        internal static ShaderVisitor GetTranslator(ShaderTarget target, AstNode methodBody, DecompilerContext decContext)
+        internal void Init(MethodDefinition methodDef)
         {
-            switch (target.Envr)
+            CurrentMethod = methodDef;
+
+            var type = methodDef.DeclaringType;
+            var module = methodDef.DeclaringType.Module;
+
+            var decContext = new DecompilerContext(module)
             {
-                case xSLEnvironment.OpenGL:
-                    switch ((xSLTarget.GLSL)target.VersionID)
-                    {
-                        case xSLTarget.GLSL.V110:
-                            return new GLSLVisitor110(methodBody, decContext);
+                CurrentType = type,
+                CurrentMethod = methodDef
+            };
 
-                        default:
-                            return new GLSLVisitor(methodBody, decContext);
-                    }
-
-                case xSLEnvironment.OpenGLES:
-                    return new GLSLVisitor110(methodBody, decContext);
-
-                case xSLEnvironment.OpenGLMix:
-                    return new GLSLVisitor110(methodBody, decContext);
-            }
-
-            return null;
-        }
-
-        internal ShaderVisitor(AstNode methodBody, DecompilerContext decContext)
-        {
-            DecContext = decContext;
-            TopNode = methodBody;
+            // create AST and run optimization operations
+            TopNode = AstMethodBodyBuilder.CreateMethodBody(methodDef, decContext);
 
             // replaces every "x = Plus(x, y)" by "x += y", etc.
-            var transform1 = (IAstTransform) new ReplaceMethodCallsWithOperators(decContext);
-            transform1.Run(methodBody);
+            var transform1 = (IAstTransform)new ReplaceMethodCallsWithOperators(decContext);
+            transform1.Run(TopNode);
 
             // replaces every "!(x == 5)" by "(x != 5)"
-            var transform2 = (IAstTransform) new PushNegation();
-            transform2.Run(methodBody);
+            var transform2 = (IAstTransform)new PushNegation();
+            transform2.Run(TopNode);
 
             // replaces every "var x; x = 5;" by "var x = 5;"
-            var transform3 = (IAstTransform) new DeclareVariables(decContext);
-            transform3.Run(methodBody);
+            var transform3 = (IAstTransform)new DeclareVariables(decContext);
+            transform3.Run(TopNode);
+        }
+
+        internal void Translate(ShaderMapping shaderMapping)
+        {
+            ShaderMapping = shaderMapping;
 
             RefMethods = new Collection<MethodDefinition>();
             RefVariables = new Collection<VariableDesc>();
-        }
 
-        internal void Translate()
-        {
             Result = new StringBuilder().Block(TopNode.AcceptVisitor(this));
         }
 
@@ -102,7 +93,7 @@ namespace CrossSL
             if (stmt == null) return null;
 
             var ilRange = GetAnnotations<List<ILRange>>(stmt).First();
-            var instructions = DecContext.CurrentMethod.Body.Instructions;
+            var instructions = CurrentMethod.Body.Instructions;
             return instructions.First(il => il.Offset == ilRange.From);
         }
 
@@ -114,11 +105,11 @@ namespace CrossSL
 
         protected string MapDataTypeIfValid(AstType node, Type type)
         {
-            if (type != null && xSLTypeMapping.Types.ContainsKey(type))
-                return xSLTypeMapping.Types[type];
+            if (type != null && ShaderMapping.Types.ContainsKey(type))
+                return ShaderMapping.Types[type];
 
             var instr = GetInstructionFromStmt(node.GetParent<Statement>());
-            Helper.Error("Type '" + type + "' is not supported", instr);
+            xSLConsole.Error("Type '" + type + "' is not supported", instr);
 
             return null;
         }

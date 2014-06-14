@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrossSL", "CrossSL\CrossSL.csproj", "{31E2F6D5-C843-4206-83CF-47F92E876485}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example", "Example\Example.csproj", "{20E1EC54-DA17-4BAF-966D-6506E4E23399}"
+	ProjectSection(ProjectDependencies) = postProject
+		{31E2F6D5-C843-4206-83CF-47F92E876485} = {31E2F6D5-C843-4206-83CF-47F92E876485}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrossSL.Meta", "CrossSL.Meta\CrossSL.Meta.csproj", "{FA8E8B76-2AA7-4782-A471-A096816A2DA7}"
 EndProject
