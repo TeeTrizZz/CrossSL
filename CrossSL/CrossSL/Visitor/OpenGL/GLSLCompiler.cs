@@ -1,16 +1,12 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Linq;
 using System.Text;
-using CrossSL.Meta;
-using Mono.CSharp;
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 
 namespace CrossSL
 {
-    internal class GLSLCompiler
+    internal static class GLSLCompiler
     {
         private static GameWindow _window;
 
@@ -75,7 +71,7 @@ namespace CrossSL
             string info;
             GL.GetShaderInfoLog(shaderObj, out info);
 
-            if (info != string.Empty)
+            if (info.Length > 0)
                 result.Append(info).NewLine();
 
             return result;

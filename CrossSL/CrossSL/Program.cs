@@ -7,7 +7,6 @@ using System.Text;
 using CrossSL.Meta;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Ast;
-using ICSharpCode.NRefactory.CSharp;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Pdb;
@@ -15,56 +14,7 @@ using Mono.Collections.Generic;
 
 namespace CrossSL
 {
-    internal struct FunctionDesc
-    {
-        internal MethodDefinition Definion;
-        internal StringBuilder Signature;
-        internal StringBuilder Body;
-        internal Collection<VariableDesc> Variables;
-    }
-
-    internal class VariableDesc
-    {
-        internal IMemberDefinition Definition;
-        internal xSLVariableType Attribute;
-        internal Type DataType;
-        internal object Value;
-        internal Instruction Instruction;
-        internal bool IsReferenced;
-
-        public override bool Equals(object obj)
-        {
-            var name = ((VariableDesc) obj).Definition.FullName;
-            return name == Definition.FullName;
-        }
-
-        public override int GetHashCode()
-        {
-            // ReSharper disable once NonReadonlyFieldInGetHashCode
-            return Definition.FullName.GetHashCode();
-        }
-    }
-
-    internal struct ShaderTarget
-    {
-        internal xSLEnvironment Envr;
-        internal int VersionID;
-        internal int Version;
-    }
-
-    internal struct ShaderDesc
-    {
-        internal string Name;
-        internal TypeDefinition Type;
-        internal ShaderTarget Target;
-        internal xSLDebug DebugFlags;
-        internal CustomAttribute[] Precision;
-        internal Collection<VariableDesc> Variables;
-        internal IEnumerable<FunctionDesc>[] Funcs;
-        internal IEnumerable<Instruction> Instructions;
-    }
-
-    internal class Program
+    internal sealed class Program
     {
         private static bool MethodExists(TypeDefinition asmType, string methodName, out MethodDefinition method)
         {
@@ -79,35 +29,57 @@ namespace CrossSL
             return false;
         }
 
+        private static void UsageError(string msg)
+        {
+            Console.WriteLine("\n\n" + msg + "\n\n");
+            Console.WriteLine("----------------------------------------------------------\n");
+
+            Console.ReadLine();
+        }
+
         private static void Main(string[] args)
         {
-            // update available data types & co.
-            xSLTypeMapping.UpdateTypes();
-            xSLMethodMapping.UpdateMapping();
+            Console.WriteLine("---------------------- CrossSL V1.0 ----------------------");
 
-            //var inputPath = @"..\..\..\Test\XCompTests.exe";
             const string inputPath =
                 @"E:\Dropbox\HS Furtwangen\7. Semester\Thesis\dev\CrossSL\Example\bin\Debug\Example.exe";
 
-            // ReSharper disable once AssignNullToNotNullAttribute
-            var metaPath = Path.Combine(Path.GetDirectoryName(inputPath), "CrossSL.Meta.dll");
+            var asmName = Path.GetFileName(inputPath);
+            var asmDir = Path.GetDirectoryName(inputPath);
 
-            // if (args.Length == 0)
-            //    return;
+            if (String.IsNullOrEmpty(inputPath))
+            {
+                UsageError("Start CrossSL with a .NET assemly as argument to translate\n" +
+                           "shaders from .NET to GLSL, e.g. 'CrossSL.exe Assembly.exe'");
+                return;
+            }
+
+            if (!File.Exists(inputPath))
+            {
+                UsageError("Could not find assembly '" + asmName + "' in path:\n\n" + asmDir);
+                return;
+            }
+
+            // ReSharper disable once AssignNullToNotNullAttribute
+            var metaPath = Path.Combine(asmDir, "CrossSL.Meta.dll");
 
             if (!File.Exists(inputPath) || !File.Exists(metaPath))
             {
-                Console.WriteLine("File not found.");
-                throw new FileNotFoundException();
+                UsageError("Found assembly '" + asmName + "' but meta assembly 'CrossSL.Meta.dll'" +
+                           "\nis missing. It needs to be in the same directory:\n\n" + asmDir);
+                return;
             }
+
+            Console.WriteLine("\n\nFound assembly '" + asmName + "' and meta assembly 'CrossSL.Meta.dll'.");
 
             // check if there is a .pdb file along with the .exe
             var debugFile = Path.ChangeExtension(inputPath, "pdb");
-            Helper.Verbose = File.Exists(debugFile);
+            var debugName = Path.GetFileName(debugFile);
 
+            Helper.Verbose = File.Exists(debugFile);
             Console.WriteLine(Helper.Verbose
-                ? "Found a .pdb file. This allows for better debugging."
-                : "No .pdb file found. Extended debugging has been disabled.");
+                ? "Found also .pdb file '" + debugName + "'. This allows for better debugging."
+                : "Found no .pdb file '" + debugName + "'. Extended debugging has been disabled.");
 
             // read assembly (and symbols) with Mono.Cecil
             var readParams = new ReaderParameters {ReadSymbols = Helper.Verbose};
@@ -132,14 +104,15 @@ namespace CrossSL
                 {
                     // load symbols from pdb file
                     var asmModule = asmType.Module;
-                    var symbReader = new PdbReaderProvider().GetSymbolReader(asmModule, debugFile);
-
-                    asmModule.ReadSymbols(symbReader);
+                    
+                    using (var symbReader = new PdbReaderProvider().GetSymbolReader(asmModule, debugFile))
+                        asmModule.ReadSymbols(symbReader);
                 }
 
-                Console.WriteLine("\n\nFound a shader called '" + asmType.Name + "':");
+                var asmTypeName = asmType.Name;
+                Console.WriteLine("\n\nFound a shader called '" + asmTypeName + "':");
 
-                var shaderDesc = new ShaderDesc {Name = asmType.Name, Type = asmType};
+                var shaderDesc = new ShaderDesc { Name = asmTypeName, Type = asmType };
 
                 // check for [xSLDebug] first in case the shader should be ignored
                 var debugAttr = asmType.CustomAttributes.FirstOrDefault(
@@ -276,12 +249,12 @@ namespace CrossSL
                     var attrs = asmField.CustomAttributes;
                     var attrCt = attrs.Count(attr => varTypes.Contains(attr.AttributeType.Name));
 
-                    var isProp = asmField.Name.Contains("<");
+                    var isProp = fdName.Contains("<");
 
                     if (isProp)
                     {
                         // ReSharper disable once StringIndexOfIsCultureSpecific.1
-                        fdName = fdName.Remove(0, 1).Remove(fdName.IndexOf(">") - 1);
+                        fdName = fdName.Remove(0, 1).Remove(fdName.IndexOf('>') - 1);
 
                         var asmProp = asmType.Properties.First(prop => prop.Name == fdName);
                         varDesc.Definition = asmProp;
@@ -311,7 +284,7 @@ namespace CrossSL
                         if (!xSLTypeMapping.Types.ContainsKey(fdType))
                         {
                             var strAdd = (fdType != typeof (Object)) ? " type '" + fdType.Name + "' " : " a type ";
-                            Helper.Error(varType + asmField.Name + "' is of" + strAdd + "which is not supported.");
+                            Helper.Error(varType + fdName + "' is of" + strAdd + "which is not supported.");
                         }
 
                         varDesc.DataType = fdType;
@@ -320,13 +293,16 @@ namespace CrossSL
                         variables.Add(varDesc);
                     }
                     else
-                        Helper.Error(varType + asmField.Name + "' is neither a constant nor has valid attributes");
+                        Helper.Error(varType + fdName + "' is neither a constant nor has valid attributes");
                 }
 
                 shaderDesc.Variables = variables;
 
                 // translate main, depending methods and constructors
-                Console.WriteLine("\n  3. Translating shader from C# to " + shaderDesc.Target.Envr + ".");
+                if (shaderDesc.Target.Envr == xSLEnvironment.OpenGLMix)
+                    Console.WriteLine("\n  3. Translating shader from C# to GLSL/GLSLES.");
+                else
+                    Console.WriteLine("\n  3. Translating shader from C# to " + shaderDesc.Target.Envr + ".");
 
                 shaderDesc.Funcs = new IEnumerable<FunctionDesc>[2];
 
@@ -407,9 +383,9 @@ namespace CrossSL
                             fragTest.Length = Math.Max(0, fragTest.Length - 3);
                             fragTest = fragTest.Replace("0(", "        => 0(");
 
-                            if (vertTest.ToString() != String.Empty)
+                            if (vertTest.Length > 0)
                                 Helper.Error("OpenGL found problems while compiling vertex shader:\n" + vertTest);
-                            else if (fragTest.ToString() != String.Empty)
+                            else if (fragTest.Length > 0)
                                 Helper.Error("OpenGL found problems while compiling fragment shader:\n" + fragTest);
                             else
                                 Console.WriteLine("        => Test was successful. OpenGL did not find any problems.");
@@ -438,10 +414,13 @@ namespace CrossSL
                 else
                 {
                     Console.WriteLine("\n  4. Shader will not be built due to critical errors.");
+                    Console.WriteLine("\n  5. Applying debugging flags if any.");
+                }
 
+                if (Helper.Abort)
+                {
                     if ((xSLDebug.ThrowException & shaderDesc.DebugFlags) != 0)
                     {
-                        Console.WriteLine("\n  5. Applying debugging flags if any.");
                         Console.WriteLine("    => Errors will be thrown when using the shader.");
                         Console.WriteLine("\n  6. Preparing to update meta assembly for this shader.");
                     }
@@ -541,8 +520,7 @@ namespace CrossSL
                 }
             }
 
-            Console.WriteLine("\n\nDone.");
-            Console.ReadLine();
+            UsageError("\nDone.");
         }
 
         private static FieldReference GenericFieldReference(TypeDefinition gen, TypeReference inst, string name)
@@ -652,13 +630,15 @@ namespace CrossSL
 
             foreach (var mandVar in mandVars)
             {
-                if (validNames.Contains(mandVar.Name) && !globalNames.Contains(mandVar.Name))
-                    Helper.Error("'" + mandVar.Name + "' has to be set in '" + shaderType + "()'");
+                var mandVarName = mandVar.Name;
 
-                if (globalNames.Count(var => var == mandVar.Name) > 1)
+                if (validNames.Contains(mandVarName) && !globalNames.Contains(mandVarName))
+                    Helper.Error("'" + mandVarName + "' has to be set in '" + shaderType + "()'");
+
+                if (globalNames.Count(var => var == mandVarName) > 1)
                 {
-                    var instr = globalVars.Last(var => var.Definition.Name == mandVar.Name).Instruction;
-                    Helper.Warning("'" + mandVar.Name + "' has been set more than" +
+                    var instr = globalVars.Last(var => var.Definition.Name == mandVarName).Instruction;
+                    Helper.Warning("'" + mandVarName + "' has been set more than" +
                                    " once in '" + shaderType + "()'", instr);
                 }
             }
@@ -715,7 +695,7 @@ namespace CrossSL
                     defPrec = "Target GLSLES requires [xSLPrecision] to set float precision for 'FragmentShader()'";
 
             // default precision
-            if (defPrec != String.Empty)
+            if (defPrec.Length > 0)
             {
                 Helper.Warning(defPrec + ". Using high precision for float as default");
                 result.Append("precision highp float;");
@@ -829,7 +809,7 @@ namespace CrossSL
             // create AST for method and start traversing
             var methodBody = AstMethodBodyBuilder.CreateMethodBody(method, decContext);
 
-            var transVisitor = GetTranslator(target, methodBody, decContext);
+            var transVisitor = ShaderVisitor.GetTranslator(target, methodBody, decContext);
             transVisitor.Translate();
 
             // save information
@@ -848,30 +828,6 @@ namespace CrossSL
 
             allFuncs.Add(result);
             return allFuncs;
-        }
-
-        private static ShaderVisitor GetTranslator(ShaderTarget target, AstNode methodBody, DecompilerContext decContext)
-        {
-            switch (target.Envr)
-            {
-                case xSLEnvironment.OpenGL:
-                    switch ((xSLTarget.GLSL) target.VersionID)
-                    {
-                        case xSLTarget.GLSL.V110:
-                            return new GLSLVisitor110(methodBody, decContext);
-
-                        default:
-                            return new GLSLVisitor(methodBody, decContext);
-                    }
-
-                case xSLEnvironment.OpenGLES:
-                    return new GLSLVisitor110(methodBody, decContext);
-
-                case xSLEnvironment.OpenGLMix:
-                    return new GLSLVisitor110(methodBody, decContext);
-            }
-
-            return null;
         }
     }
 }

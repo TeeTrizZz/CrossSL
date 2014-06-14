@@ -10,49 +10,6 @@ namespace CrossSL
     // ReSharper disable InconsistentNaming
     // ReSharper disable UnusedParameter.Local
 
-    internal enum xSLShaderType
-    {
-        VertexShader,
-        FragmentShader
-    }
-
-    internal class xSLVersion
-    {
-        internal static string[][] VIDs =
-        {
-            new[]
-            {
-                "110",
-                "120",
-                "130",
-                "140",
-                "150",
-                "330",
-                "400",
-                "420",
-                "430",
-                "440"
-            },
-            new[]
-            {
-                "100"
-            },
-            new[]
-            {
-                "110"
-            }
-        };
-    }
-
-    internal enum xSLVariableType
-    {
-        xSLUnknown,
-        xSLAttributeAttribute,
-        xSLVaryingAttribute,
-        xSLUniformAttribute,
-        xSLConstAttribute
-    }
-
     internal static class xSLTypeMapping
     {
         internal static Dictionary<Type, string> Types = new Dictionary<Type, string>
@@ -68,15 +25,23 @@ namespace CrossSL
         };
 
         /// <summary>
+        /// Initializes the <see cref="xSLTypeMapping"/> class.
+        /// </summary>
+        static xSLTypeMapping()
+        {
+            UpdateTypes();
+        }
+
+        /// <summary>
         ///     Some data types have to be resolved by reflection at runtime, as they are
         ///     protected and nested into the <see cref="xSLShader" /> class. They are
-        ///     marked with the <see cref="CrossSL.Meta.xSLDataTypeAttribute" /> attribute,
-        ///     which also contains their GLSL equivalent as the constructor argument.
+        ///     marked with the <see cref="xSLShader.MappingAttribute" /> attribute, which
+        ///     also contains their GLSL equivalent as the constructor argument.
         /// </summary>
-        internal static void UpdateTypes()
+        private static void UpdateTypes()
         {
-            var mappingAttr = typeof (xSLMappingAttribute);
-            var nestedTypes = typeof (xSLShader).GetNestedTypes(BindingFlags.NonPublic);
+            var nestedTypes = typeof(xSLShader).GetNestedTypes(BindingFlags.NonPublic);
+            var mappingAttr = nestedTypes.FirstOrDefault(type => type.Name == "MappingAttribute");
             var dataTypes = nestedTypes.Where(type => type.GetCustomAttribute(mappingAttr) != null);
 
             foreach (var type in dataTypes)
@@ -90,12 +55,23 @@ namespace CrossSL
 
     internal static class xSLMethodMapping
     {
+        /// <summary>
+        /// All types whose methods need to be mapped by CrossSL 
+        /// </summary>
         internal static HashSet<Type> Types = new HashSet<Type>
         {
             typeof (xSLShader),
-            typeof (Math)
+            typeof (Math),
+            typeof (float2),
+            typeof (float3),
+            typeof (float4),
+            typeof (float3x3),
+            typeof (float4x4)
         };
 
+        /// <summary>
+        /// A lookup table for mapping methods from C# to GLSL
+        /// </summary>
         internal static Dictionary<string, string> Methods = new Dictionary<string, string>
         {
             {"Normalize", "normalize"},
@@ -105,21 +81,23 @@ namespace CrossSL
         };
 
         /// <summary>
-        ///     Resolves all <see cref="Fusee.Math" /> types and all <see cref="xSLShader" />
-        ///     methods by reflection at runtime, so that they can change and new types can be
-        ///     added without the need to update this class' <see cref="Types" /> field.
+        /// Initializes the <see cref="xSLMethodMapping"/> class.
         /// </summary>
-        internal static void UpdateMapping()
+        static xSLMethodMapping()
         {
-            // update types
-            var lookUpType = typeof (float4);
-            var lookUpNS = lookUpType.Namespace;
-            var lookUpAssembly = lookUpType.Assembly;
+            UpdateMapping();
+        }
 
-            Types.UnionWith(lookUpAssembly.GetTypes().Where(type => type.Namespace == lookUpNS));
+        /// <summary>
+        ///     Resolves all <see cref="xSLShader" /> methods by reflection at runtime,
+        ///     so that they can change and new methods can be added without the need to
+        ///     update this class' <see cref="Methods" /> field.
+        /// </summary>
+        private static void UpdateMapping()
+        {
+            var nestedTypes = typeof(xSLShader).GetNestedTypes(BindingFlags.NonPublic);
+            var mappingAttr = nestedTypes.FirstOrDefault(type => type.Name == "MappingAttribute");
 
-            // update methods
-            var mappingAttr = typeof (xSLMappingAttribute);
             var allmethods = typeof (xSLShader).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance);
             var shMethods = allmethods.Where(type => type.GetCustomAttribute(mappingAttr) != null).ToList();
 

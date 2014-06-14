@@ -53,7 +53,6 @@ namespace CrossSL
         /// <summary>
         ///     Resets <see cref="Abort" /> and <see cref="Errors" /> fields of this class.
         /// </summary>
-        /// <exception cref="System.NotImplementedException"></exception>
         public static void Reset()
         {
             Abort = false;

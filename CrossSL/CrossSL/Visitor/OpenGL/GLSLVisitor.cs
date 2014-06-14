@@ -25,12 +25,12 @@ namespace CrossSL
         ///     If verbose mode is active (i.e. if a .pdb file was found) additional
         ///     line breaks between statements are considered in the output.
         /// </remarks>
-        public override StringBuilder VisitBlockStatement(BlockStatement blockStmt, int data)
+        public override StringBuilder VisitBlockStatement(BlockStatement blockStmt)
         {
             var result = new StringBuilder();
 
             foreach (var stmt in blockStmt.Statements)
-                result.Append(stmt.AcceptVisitor(this, data)).NewLine();
+                result.Append(stmt.AcceptVisitor(this)).NewLine();
 
             return result;
         }
@@ -39,13 +39,13 @@ namespace CrossSL
         ///     Translates a variable declaration statement, e.g. "float4 x;".
         /// </summary>
         public override StringBuilder VisitVariableDeclarationStatement(
-            VariableDeclarationStatement varDeclStmt, int data)
+            VariableDeclarationStatement varDeclStmt)
         {
             var result = new StringBuilder();
 
-            var type = varDeclStmt.Type.AcceptVisitor(this, data);
+            var type = varDeclStmt.Type.AcceptVisitor(this);
             foreach (var varDecl in varDeclStmt.Variables)
-                result.Append(type).Space().Append(varDecl.AcceptVisitor(this, data)).Semicolon();
+                result.Append(type).Space().Append(varDecl.AcceptVisitor(this)).Semicolon();
 
             return result;
         }
@@ -53,7 +53,7 @@ namespace CrossSL
         /// <summary>
         ///     Translates a simple data type, e.g. "float4".
         /// </summary>
-        public override StringBuilder VisitSimpleType(SimpleType simpleType, int data)
+        public override StringBuilder VisitSimpleType(SimpleType simpleType)
         {
             var sysType = simpleType.Annotation<TypeReference>().ToType();
             var mappedType = MapDataTypeIfValid(simpleType, sysType);
@@ -66,9 +66,9 @@ namespace CrossSL
         /// <summary>
         ///     Translates a primitive data type, e.g. "float".
         /// </summary>
-        public override StringBuilder VisitPrimitiveType(PrimitiveType primitiveType, int data)
+        public override StringBuilder VisitPrimitiveType(PrimitiveType primitiveType)
         {
-            var typeName = primitiveType.KnownTypeCode;
+            var typeName = primitiveType.KnownTypeCode.ToString();
             var sysType = Type.GetType("System." + typeName);
 
             var mappedType = MapDataTypeIfValid(primitiveType, sysType);
@@ -81,12 +81,12 @@ namespace CrossSL
         /// <summary>
         ///     Translates a variable initializer, e.g. "x" or "x = 5".
         /// </summary>
-        public override StringBuilder VisitVariableInitializer(VariableInitializer variableInit, int data)
+        public override StringBuilder VisitVariableInitializer(VariableInitializer variableInit)
         {
             var result = new StringBuilder(variableInit.Name);
 
             if (!variableInit.Initializer.IsNull)
-                result.Assign().Append(variableInit.Initializer.AcceptVisitor(this, data));
+                result.Assign().Append(variableInit.Initializer.AcceptVisitor(this));
 
             return result;
         }
@@ -94,22 +94,22 @@ namespace CrossSL
         /// <summary>
         ///     Translates an expression statement, e.g. "x = a + b".
         /// </summary>
-        public override StringBuilder VisitExpressionStatement(ExpressionStatement exprStmt, int data)
+        public override StringBuilder VisitExpressionStatement(ExpressionStatement exprStmt)
         {
-            return exprStmt.Expression.AcceptVisitor(this, data).Semicolon();
+            return exprStmt.Expression.AcceptVisitor(this).Semicolon();
         }
 
         /// <summary>
         ///     Translates an assignment statement, e.g. "x = a + b".
         /// </summary>
-        public override StringBuilder VisitAssignmentExpression(AssignmentExpression assignmentExpr, int data)
+        public override StringBuilder VisitAssignmentExpression(AssignmentExpression assignmentExpr)
         {
-            var result = assignmentExpr.Left.AcceptVisitor(this, data);
+            var result = assignmentExpr.Left.AcceptVisitor(this);
 
             // assignment operator type mapping
             var opAssignment = new Dictionary<AssignmentOperatorType, string>
             {
-                {AssignmentOperatorType.Assign, ""},
+                {AssignmentOperatorType.Assign, String.Empty},
                 {AssignmentOperatorType.Add, "+"},
                 {AssignmentOperatorType.BitwiseAnd, "&"},
                 {AssignmentOperatorType.BitwiseOr, "|"},
@@ -123,7 +123,7 @@ namespace CrossSL
             };
 
             result.Assign(opAssignment[assignmentExpr.Operator]);
-            var rightRes = assignmentExpr.Right.AcceptVisitor(this, data);
+            var rightRes = assignmentExpr.Right.AcceptVisitor(this);
 
             // add value to RefVariables if this is an "constant initialization"
             if (assignmentExpr.Operator == AssignmentOperatorType.Assign)
@@ -150,20 +150,20 @@ namespace CrossSL
         /// <summary>
         ///     Translates a binary operator expression, e.g. "a * b".
         /// </summary>
-        public override StringBuilder VisitBinaryOperatorExpression(BinaryOperatorExpression binaryOpExpr, int data)
+        public override StringBuilder VisitBinaryOperatorExpression(BinaryOperatorExpression binaryOpExpr)
         {
             var result = new StringBuilder();
 
             if (binaryOpExpr.Operator == BinaryOperatorType.Modulus)
             {
-                var leftOp = binaryOpExpr.Left.AcceptVisitor(this, data).ToString();
-                var rightOp = binaryOpExpr.Right.AcceptVisitor(this, data).ToString();
+                var leftOp = binaryOpExpr.Left.AcceptVisitor(this).ToString();
+                var rightOp = binaryOpExpr.Right.AcceptVisitor(this).ToString();
 
                 result.Method("mod", leftOp, rightOp);
             }
             else
             {
-                result.Append(binaryOpExpr.Left.AcceptVisitor(this, data));
+                result.Append(binaryOpExpr.Left.AcceptVisitor(this));
 
                 // binary operator type mapping
                 var opAssignment = new Dictionary<BinaryOperatorType, string>
@@ -189,7 +189,7 @@ namespace CrossSL
                 };
 
                 result.Space().Append(opAssignment[binaryOpExpr.Operator]).Space();
-                result.Append(binaryOpExpr.Right.AcceptVisitor(this, data));
+                result.Append(binaryOpExpr.Right.AcceptVisitor(this));
             }
 
             return result;
@@ -198,14 +198,14 @@ namespace CrossSL
         /// <summary>
         ///     Translates a member reference, e.g. a field called "_value".
         /// </summary>
-        public override StringBuilder VisitMemberReferenceExpression(MemberReferenceExpression memberRefExpr, int data)
+        public override StringBuilder VisitMemberReferenceExpression(MemberReferenceExpression memberRefExpr)
         {
             var result = new StringBuilder();
 
             if (!(memberRefExpr.Target is ThisReferenceExpression))
             {
-                result = memberRefExpr.Target.AcceptVisitor(this, data);
-                if (result != null && result.ToString() != String.Empty) result.Dot();
+                result = memberRefExpr.Target.AcceptVisitor(this);
+                if (result != null && result.Length > 0) result.Dot();
             }
 
             var memberName = memberRefExpr.MemberName;
@@ -227,7 +227,7 @@ namespace CrossSL
         /// <summary>
         ///     Translates a base reference, i.e. "base.*".
         /// </summary>
-        public override StringBuilder VisitBaseReferenceExpression(BaseReferenceExpression baseRefExpr, int data)
+        public override StringBuilder VisitBaseReferenceExpression(BaseReferenceExpression baseRefExpr)
         {
             return new StringBuilder();
         }
@@ -235,9 +235,9 @@ namespace CrossSL
         /// <summary>
         ///     Translates an object creation, e.g. "new float4(...)".
         /// </summary>
-        public override StringBuilder VisitObjectCreateExpression(ObjectCreateExpression objCreateExpr, int data)
+        public override StringBuilder VisitObjectCreateExpression(ObjectCreateExpression objCreateExpr)
         {
-            var type = objCreateExpr.Type.AcceptVisitor(this, data);
+            var type = objCreateExpr.Type.AcceptVisitor(this);
             var args = JoinArgs(objCreateExpr.Arguments);
 
             return type.Method(String.Empty, args.ToString());
@@ -246,7 +246,7 @@ namespace CrossSL
         /// <summary>
         ///     Translates a primitive type, e.g. "1f".
         /// </summary>
-        public override StringBuilder VisitPrimitiveExpression(PrimitiveExpression primitiveExpr, int data)
+        public override StringBuilder VisitPrimitiveExpression(PrimitiveExpression primitiveExpr)
         {
             var result = new StringBuilder();
             var cultureInfo = CultureInfo.InvariantCulture.NumberFormat;
@@ -283,7 +283,7 @@ namespace CrossSL
         /// <summary>
         ///     Translates a type reference, e.g. "OtherClass.".
         /// </summary>
-        public override StringBuilder VisitTypeReferenceExpression(TypeReferenceExpression typeRefExpr, int data)
+        public override StringBuilder VisitTypeReferenceExpression(TypeReferenceExpression typeRefExpr)
         {
             var memberRef = typeRefExpr.GetParent<MemberReferenceExpression>();
             if (memberRef == null) return new StringBuilder();
@@ -299,11 +299,11 @@ namespace CrossSL
         /// <summary>
         ///     Translates an unary expression, e.g. "value++".
         /// </summary>
-        public override StringBuilder VisitUnaryOperatorExpression(UnaryOperatorExpression unaryOpExpr, int data)
+        public override StringBuilder VisitUnaryOperatorExpression(UnaryOperatorExpression unaryOpExpr)
         {
             var result = new StringBuilder();
 
-            var expr = unaryOpExpr.Expression.AcceptVisitor(this, data);
+            var expr = unaryOpExpr.Expression.AcceptVisitor(this);
 
             // unary operator type mapping
             var opPreAsngmt = new Dictionary<UnaryOperatorType, string>
@@ -340,15 +340,15 @@ namespace CrossSL
         /// <summary>
         ///     Translates a direction expression, e.g. "ref value" or "out value".
         /// </summary>
-        public override StringBuilder VisitDirectionExpression(DirectionExpression directionExpr, int data)
+        public override StringBuilder VisitDirectionExpression(DirectionExpression directionExpr)
         {
-            return directionExpr.Expression.AcceptVisitor(this, data);
+            return directionExpr.Expression.AcceptVisitor(this);
         }
 
         /// <summary>
         ///     Translates an identifier, e.g. a variable called "value".
         /// </summary>
-        public override StringBuilder VisitIdentifierExpression(IdentifierExpression identifierExpr, int data)
+        public override StringBuilder VisitIdentifierExpression(IdentifierExpression identifierExpr)
         {
             return new StringBuilder(identifierExpr.Identifier);
         }
@@ -356,12 +356,14 @@ namespace CrossSL
         /// <summary>
         ///     Translates an invocation expression, e.g. "Math.Max(10, 5)".
         /// </summary>
-        public override StringBuilder VisitInvocationExpression(InvocationExpression invocationExpr, int data)
+        public override StringBuilder VisitInvocationExpression(InvocationExpression invocationExpr)
         {
             var result = new StringBuilder();
 
             var methodDef = invocationExpr.Annotation<MethodDefinition>() ??
                             invocationExpr.Annotation<MethodReference>().Resolve();
+
+            var methodName = methodDef.Name;
             var declType = methodDef.DeclaringType.ToType();
 
             var args = JoinArgs(invocationExpr.Arguments).ToString();
@@ -369,9 +371,9 @@ namespace CrossSL
             // map method if it's a mathematical method or
             // map method if it's a xSLShader class' method
             if (xSLMethodMapping.Types.Contains(declType))
-                if (xSLMethodMapping.Methods.ContainsKey(methodDef.Name))
+                if (xSLMethodMapping.Methods.ContainsKey(methodName))
                 {
-                    var mappedName = xSLMethodMapping.Methods[methodDef.Name];
+                    var mappedName = xSLMethodMapping.Methods[methodName];
                     return result.Method(mappedName, args);
                 }
 
@@ -385,13 +387,13 @@ namespace CrossSL
         /// <summary>
         ///     Translates an if/else statement, e.g. "if (...) { ... } else { ... }".
         /// </summary>
-        public override StringBuilder VisitIfElseStatement(IfElseStatement ifElseStmt, int data)
+        public override StringBuilder VisitIfElseStatement(IfElseStatement ifElseStmt)
         {
             var result = new StringBuilder();
-            result.If(ifElseStmt.Condition.AcceptVisitor(this, data));
+            result.If(ifElseStmt.Condition.AcceptVisitor(this));
 
             var @true = (BlockStatement) ifElseStmt.TrueStatement;
-            var trueStmt = @true.AcceptVisitor(this, data);
+            var trueStmt = @true.AcceptVisitor(this);
 
             if (@true.Statements.Count > 1)
                 result.Block(trueStmt);
@@ -402,7 +404,7 @@ namespace CrossSL
                 return result;
 
             var @false = (BlockStatement) ifElseStmt.FalseStatement;
-            var falseStmt = @false.AcceptVisitor(this, data);
+            var falseStmt = @false.AcceptVisitor(this);
 
             if (@true.Statements.Count > 1)
                 result.Else().Block(falseStmt);
@@ -415,9 +417,9 @@ namespace CrossSL
         /// <summary>
         ///     Translates an return statement, e.g. "return value".
         /// </summary>
-        public override StringBuilder VisitReturnStatement(ReturnStatement returnStmt, int data)
+        public override StringBuilder VisitReturnStatement(ReturnStatement returnStmt)
         {
-            var expr = returnStmt.Expression.AcceptVisitor(this, data);
+            var expr = returnStmt.Expression.AcceptVisitor(this);
             return new StringBuilder("return").Space().Append(expr).Semicolon();
         }
     }

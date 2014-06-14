@@ -3,7 +3,7 @@ using System.Text;
 
 namespace CrossSL
 {
-    internal static class ExtensionMethods
+    internal static class StringBuilderExtension
     {
         internal static StringBuilder Space(this StringBuilder value)
         {

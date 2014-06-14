@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Text;
 using Fusee.Math;
 using ICSharpCode.Decompiler;
@@ -21,10 +22,10 @@ namespace CrossSL
         /// <remarks>
         ///     GLSL 1.1 does not support type suffix.
         /// </remarks>
-        public override StringBuilder VisitPrimitiveExpression(PrimitiveExpression primitiveExpr, int data)
+        public override StringBuilder VisitPrimitiveExpression(PrimitiveExpression primitiveExpr)
         {
-            var result = base.VisitPrimitiveExpression(primitiveExpr, data);
-            return result.Replace("f", "");
+            var result = base.VisitPrimitiveExpression(primitiveExpr);
+            return result.Replace("f", String.Empty);
         }
 
         /// <summary>
@@ -33,9 +34,9 @@ namespace CrossSL
         /// <remarks>
         ///     GLSL 1.1 does not support matrix casts.
         /// </remarks>
-        public override StringBuilder VisitObjectCreateExpression(ObjectCreateExpression objCreateExpr, int data)
+        public override StringBuilder VisitObjectCreateExpression(ObjectCreateExpression objCreateExpr)
         {
-            var result = base.VisitObjectCreateExpression(objCreateExpr, data);
+            var result = base.VisitObjectCreateExpression(objCreateExpr);
 
             if (!(objCreateExpr.GetType() == typeof (SimpleType)))
                 return result;

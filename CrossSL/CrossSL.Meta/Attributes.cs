@@ -5,38 +5,30 @@ namespace CrossSL.Meta
     // ReSharper disable InconsistentNaming
     // ReSharper disable UnusedParameter.Local
 
-    public class xSLMappingAttribute : Attribute
-    {
-        public xSLMappingAttribute(string GLSL)
-        {
-            // dummy implementation            
-        }
-    }
-
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,
         AllowMultiple = false)]
-    public class xSLAttributeAttribute : Attribute
+    public sealed class xSLAttributeAttribute : Attribute
     {
         // dummy implementation
     }
 
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,
         AllowMultiple = false)]
-    public class xSLVaryingAttribute : Attribute
+    public sealed class xSLVaryingAttribute : Attribute
     {
         // dummy implementation
     }
 
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,
         AllowMultiple = false)]
-    public class xSLUniformAttribute : Attribute
+    public sealed class xSLUniformAttribute : Attribute
     {
         // dummy implementation
     }
 
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,
         AllowMultiple = false)]
-    public class xSLConstAttribute : Attribute
+    public sealed class xSLConstAttribute : Attribute
     {
         // dummy implementation
     }

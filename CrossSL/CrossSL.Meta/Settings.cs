@@ -3,7 +3,6 @@
 namespace CrossSL.Meta
 {
     // ReSharper disable InconsistentNaming
-    // ReSharper disable UnusedParameter.Local
 
     public enum xSLEnvironment
     {
@@ -12,7 +11,7 @@ namespace CrossSL.Meta
         OpenGLMix
     }
 
-    public class xSLTarget
+    public static class xSLTarget
     {
         public enum GLSL
         {
@@ -57,5 +56,4 @@ namespace CrossSL.Meta
     }
 
     // ReSharper restore InconsistentNaming
-    // ReSharper restore UnusedParameter.Local
 }

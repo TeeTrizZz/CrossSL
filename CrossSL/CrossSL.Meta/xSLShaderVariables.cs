@@ -1,27 +1,28 @@
 ﻿using System;
-using System.Diagnostics;
 using Fusee.Math;
 
 namespace CrossSL.Meta
 {
+    #pragma warning disable 0649
     // ReSharper disable InconsistentNaming
-    // ReSharper disable UnusedMember.Local
-    // ReSharper disable StaticFieldInGenericType
     // ReSharper disable UnusedAutoPropertyAccessor.Local
 
-    public abstract class xSLShader
+    public abstract partial class xSLShader
     {
-        private class VertexShaderAttribute : Attribute
+        [AttributeUsage(AttributeTargets.Property)]
+        private sealed class VertexShaderAttribute : Attribute
         {
             // dummy implementation
         }
 
-        private class FragmentShaderAttribute : Attribute
+        [AttributeUsage(AttributeTargets.Property)]
+        private sealed class FragmentShaderAttribute : Attribute
         {
             // dummy implementation
         }
 
-        private class MandatoryAttribute : Attribute
+        [AttributeUsage(AttributeTargets.Property)]
+        private sealed class MandatoryAttribute : Attribute
         {
             // dummy implementation
         }
@@ -177,52 +178,52 @@ namespace CrossSL.Meta
 
         protected struct xslDepthRangeParameters
         {
-            public float Near;
-            public float Far;
-            public float Diff;
+            internal float Near;
+            internal float Far;
+            internal float Diff;
         }
 
         protected xslDepthRangeParameters xslDepthRange { get; private set; }
 
         protected struct xslFogParameters
         {
-            public float4 Color;
-            public float Density;
-            public float Start;
-            public float End;
-            public float Scale;
+            internal float4 Color;
+            internal float Density;
+            internal float Start;
+            internal float End;
+            internal float Scale;
         }
 
         protected xslFogParameters xslFog { get; private set; }
 
         protected struct xslLightSourceParameters
         {
-            public float4 Ambient;
-            public float4 Diffuse;
-            public float4 Specular;
-            public float4 Position;
-            public float4 HalfVector;
-            public float3 SpotDirection;
-            public float SpotExponent;
-            public float SpotCutoff;
-            public float SpotCosCutoff;
-            public float ConstantAttenuation;
-            public float LinearAttentuation;
-            public float QuadraticAttenuation;
+            internal float4 Ambient;
+            internal float4 Diffuse;
+            internal float4 Specular;
+            internal float4 Position;
+            internal float4 HalfVector;
+            internal float3 SpotDirection;
+            internal float SpotExponent;
+            internal float SpotCutoff;
+            internal float SpotCosCutoff;
+            internal float ConstantAttenuation;
+            internal float LinearAttentuation;
+            internal float QuadraticAttenuation;
         }
 
         protected xslLightSourceParameters[] xslLightSource { get; private set; }
 
         protected struct xslLightModelParameters
         {
-            public float4 Ambient;
+            internal float4 Ambient;
         }
 
         protected xslLightModelParameters xslLightModel { get; private set; }
 
         protected struct xslLightModelProducts
         {
-            public float4 SceneColor;
+            internal float4 SceneColor;
         }
 
         protected xslLightModelProducts xslFrontLightModelProduct { get; private set; }
@@ -230,9 +231,9 @@ namespace CrossSL.Meta
 
         protected struct xslLightProducts
         {
-            public float4 Ambient;
-            public float4 Diffuse;
-            public float4 Specular;
+            internal float4 Ambient;
+            internal float4 Diffuse;
+            internal float4 Specular;
         }
 
         protected xslLightProducts[] xslFrontLightProduct { get; private set; }
@@ -240,11 +241,11 @@ namespace CrossSL.Meta
 
         protected struct xslMaterialParameters
         {
-            public float4 Emission;
-            public float4 Ambient;
-            public float4 Diffuse;
-            public float4 Specular;
-            public float Shininess;
+            internal float4 Emission;
+            internal float4 Ambient;
+            internal float4 Diffuse;
+            internal float4 Specular;
+            internal float Shininess;
         }
 
         protected xslMaterialParameters xslFrontMaterial { get; private set; }
@@ -252,13 +253,13 @@ namespace CrossSL.Meta
 
         protected struct xslPointParameters
         {
-            public float Size;
-            public float SizeMin;
-            public float SizeMax;
-            public float FadeThresholdSize;
-            public float DistanceConstantAttenuation;
-            public float DistanceLinearAttenuation;
-            public float DistanceQuadraticAttenuation;
+            internal float Size;
+            internal float SizeMin;
+            internal float SizeMax;
+            internal float FadeThresholdSize;
+            internal float DistanceConstantAttenuation;
+            internal float DistanceLinearAttenuation;
+            internal float DistanceQuadraticAttenuation;
         }
 
         protected xslPointParameters xslPoint { get; private set; }
@@ -278,110 +279,9 @@ namespace CrossSL.Meta
         protected float4[] xslObjectPlaneQ { get; private set; }
 
         #endregion
-
-        // SHADER MAIN
-        protected abstract void VertexShader();
-        protected abstract void FragmentShader();
-
-        // BUILT-IN FUNCTIONS
-        [xSLMapping("texture2D")]
-        protected float4 Texture2D(sampler2D sampler, float2 coord)
-        {
-            return new float4(1, 1, 1, 1);
-        }
-
-        [xSLMapping("texture2D")]
-        protected float4 Texture2D(sampler2D sampler, float2 coord, float bias)
-        {
-            return new float4(1, 1, 1, 1);
-        }
-
-        // data types
-        [xSLMapping("sampler2D")]
-        protected struct sampler2D
-        {
-            // dummy implementation
-        }
-    }
-
-    public sealed class xSL<TShader> where TShader : xSLShader, new()
-    {
-        // ReSharper disable FieldCanBeMadeReadOnly.Local
-        private static bool _translated;
-        private static string _error;
-        // ReSharper restore FieldCanBeMadeReadOnly.Local
-
-        private static string _vertex;
-        private static string _fragment;
-
-        private static TShader _instance;
-
-        static xSL()
-        {
-            _translated = false;
-            _error = String.Empty;
-
-            _vertex = "... default ...";
-            _fragment = "... default ...";
-
-            Init();
-
-            _instance = new TShader();
-        }
-
-        // to be modified by xSL
-        private static void Init()
-        {
-            // dummy implementation
-        }
-
-        // to be modified by xSL
-        private static void ShaderInfo()
-        {
-            if (!_translated)
-                Debug.WriteLine("xSL: Shader '" + typeof (TShader).Name +
-                                "' has not been translated.");
-
-            if (_error != String.Empty)
-                throw new ApplicationException(_error);
-        }
-
-        public static string VertexShader
-        {
-            get
-            {
-                ShaderInfo();
-                return _vertex;
-            }
-
-            private set { _vertex = value; }
-        }
-
-        public static string FragmentShader
-        {
-            get
-            {
-                ShaderInfo();
-                return _fragment;
-            }
-
-            private set { _fragment = value; }
-        }
-
-        public static TShader ShaderObject
-        {
-            get
-            {
-                ShaderInfo();
-                return _instance;
-            }
-
-            private set { _instance = value; }
-        }
     }
 
     // ReSharper restore UnusedAutoPropertyAccessor.Local
     // ReSharper restore InconsistentNaming
-    // ReSharper restore UnusedMember.Local
-    // ReSharper restore StaticFieldInGenericType
+    #pragma warning restore 0649
 }
