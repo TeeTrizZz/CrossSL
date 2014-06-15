@@ -18,7 +18,7 @@ namespace CrossSL
 
     internal sealed class ShaderTarget
     {
-        internal xSLEnvironment Envr;
+        internal xSLShader.xSLEnvironment Envr;
         internal int VersionID;
         internal int Version;
     }
@@ -28,7 +28,7 @@ namespace CrossSL
         internal string Name;
         internal TypeDefinition Type;
         internal ShaderTarget Target;
-        internal xSLDebug DebugFlags;
+        internal xSLShader.xSLDebug DebugFlags;
         internal CustomAttribute[] Precision;
         internal Collection<VariableDesc> Variables;
         internal IEnumerable<FunctionDesc>[] Funcs;
@@ -38,7 +38,7 @@ namespace CrossSL
     internal sealed class VariableDesc
     {
         internal IMemberDefinition Definition;
-        internal xSLVariableType Attribute;
+        internal SLVariableType Attribute;
         internal Type DataType;
         internal bool IsArray;
         internal object Value;

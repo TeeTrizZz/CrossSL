@@ -122,7 +122,7 @@ namespace CrossSL
                 return ShaderMapping.Types[type];
 
             var instr = GetInstructionFromStmt(node.GetParent<Statement>());
-            xSLConsole.Error("Type '" + type + "' is not supported", instr);
+            DebugLog.Error("Type '" + type + "' is not supported", instr);
 
             return null;
         }

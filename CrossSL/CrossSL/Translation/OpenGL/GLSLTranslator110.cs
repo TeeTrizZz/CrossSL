@@ -25,16 +25,16 @@ namespace CrossSL
             var doubleVars = ShaderDesc.Variables.Where(var => var.DataType == typeof (double));
             foreach (var doubleVar in doubleVars)
             {
-                xSLConsole.Warning("'" + doubleVar.Definition.Name + "' is of type 'double' which" +
+                DebugLog.Warning("'" + doubleVar.Definition.Name + "' is of type 'double' which" +
                                    " is not supported in GLSL 1.1. Type will be changed to 'float'");
             }
 
             // no support for const arrays
             var arrays = ShaderDesc.Variables.Where(var => var.IsArray);
-            var constArrays = arrays.Where(var => var.Attribute == xSLVariableType.xSLConstAttribute);
+            var constArrays = arrays.Where(var => var.Attribute == SLVariableType.xSLConstAttribute);
 
             foreach (var constArray in constArrays)
-                xSLConsole.Error("'" + constArray.Definition.Name + "' is a const array. This" +
+                DebugLog.Error("'" + constArray.Definition.Name + "' is a const array. This" +
                                  " is not supported in GLSL 1.1");
         }
     }

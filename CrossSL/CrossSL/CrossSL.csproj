@@ -77,7 +77,7 @@
     <Compile Include="Visitor\ShaderVisitorAbstract.cs" />
     <Compile Include="Visitor\ShaderVisitor.cs" />
     <Compile Include="Helper\StringBuilder.cs" />
-    <Compile Include="Helper\xSLConsole.cs" />
+    <Compile Include="Helper\DebugLog.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

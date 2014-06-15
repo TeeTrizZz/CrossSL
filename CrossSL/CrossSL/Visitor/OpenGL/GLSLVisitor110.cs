@@ -23,7 +23,7 @@ namespace CrossSL
             if (primitiveExpr.Value is double)
             {
                 var dInstr = GetInstructionFromStmt(primitiveExpr.GetParent<Statement>());
-                xSLConsole.Warning("Type 'double' is not supported in GLSL 1.1. " +
+                DebugLog.Warning("Type 'double' is not supported in GLSL 1.1. " +
                                    "Value will be casted to type 'float'", dInstr);
 
                 result.Replace('d', 'f');
@@ -55,7 +55,7 @@ namespace CrossSL
                 if (methodParam != null && methodParam.ParameterType.IsType<float4x4>())
                 {
                     var instr = GetInstructionFromStmt(objCreateExpr.GetParent<Statement>());
-                    xSLConsole.Warning("Matrix casting (float4x4 to float3x3) is not supported " +
+                    DebugLog.Warning("Matrix casting (float4x4 to float3x3) is not supported " +
                                        " in GLSL 1.1. Expression has been converted automatically", instr);
 
                     var argName = objCreateExpr.Arguments.First().AcceptVisitor(this);

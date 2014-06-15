@@ -57,11 +57,11 @@ namespace CrossSL
             return supV >= target;
         }
 
-        internal static StringBuilder CreateShader(StringBuilder shader, xSLShaderType type)
+        internal static StringBuilder CreateShader(StringBuilder shader, SLShaderType type)
         {
             var result = new StringBuilder();
 
-            var shaderObj = type == xSLShaderType.VertexShader
+            var shaderObj = type == SLShaderType.VertexShader
                 ? GL.CreateShader(ShaderType.VertexShader)
                 : GL.CreateShader(ShaderType.FragmentShader);
 

@@ -374,7 +374,7 @@ namespace CrossSL
             var instr = GetInstructionFromStmt(typeRefExpr.GetParent<Statement>());
             var name = memberRef.MemberName;
 
-            xSLConsole.Error("Static member '" + name + "' of class '" + typeRefExpr.Type + "' cannot be used", instr);
+            DebugLog.Error("Static member '" + name + "' of class '" + typeRefExpr.Type + "' cannot be used", instr);
 
             return null;
         }
@@ -414,7 +414,7 @@ namespace CrossSL
             else
             {
                 var dInstr = GetInstructionFromStmt(unaryOpExpr.GetParent<Statement>());
-                xSLConsole.Error("Unary operator '" + unaryOpExpr.Operator + "' is not supported", dInstr);
+                DebugLog.Error("Unary operator '" + unaryOpExpr.Operator + "' is not supported", dInstr);
             }
 
             return result;

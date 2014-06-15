@@ -9,6 +9,12 @@ using Mono.Cecil.Cil;
 using Mono.Cecil.Pdb;
 using Mono.Collections.Generic;
 
+using xSLDebug = CrossSL.Meta.xSLShader.xSLDebug;
+using xSLDebugAttribute = CrossSL.Meta.xSLShader.xSLDebugAttribute;
+using xSLTargetAttribute = CrossSL.Meta.xSLShader.xSLTargetAttribute;
+using xSLPrecisionAttribute = CrossSL.Meta.xSLShader.xSLPrecisionAttribute;
+using xSLEnvironment = CrossSL.Meta.xSLShader.xSLEnvironment;
+
 namespace CrossSL
 {
     internal static class Program
@@ -21,7 +27,7 @@ namespace CrossSL
             if (methodCount <= 1 && method != null && method.IsVirtual) return true;
 
             var instr = (method != null) ? method.Body.Instructions[0] : null;
-            xSLConsole.Error("You did not override method '" + methodName + "' properly", instr);
+            DebugLog.Error("You did not override method '" + methodName + "' properly", instr);
 
             return false;
         }
@@ -45,7 +51,7 @@ namespace CrossSL
 
             if (args.Length == 0 || String.IsNullOrEmpty(args[0]))
             {
-                xSLConsole.UsageError("Start CrossSL with a .NET assemly as argument to translate\n" +
+                DebugLog.UsageError("Start CrossSL with a .NET assemly as argument to translate\n" +
                                       "shaders from .NET to GLSL, e.g. 'CrossSL.exe Assembly.exe'");
                 return -1;
             }
@@ -57,7 +63,7 @@ namespace CrossSL
 
             if (!File.Exists(inputPath))
             {
-                xSLConsole.UsageError("Could not find assembly '" + asmName + "' in path:\n\n" + asmDir);
+                DebugLog.UsageError("Could not find assembly '" + asmName + "' in path:\n\n" + asmDir);
                 return -1;
             }
 
@@ -66,7 +72,7 @@ namespace CrossSL
 
             if (!File.Exists(inputPath) || !File.Exists(metaPath))
             {
-                xSLConsole.UsageError("Found assembly '" + asmName + "' but meta assembly 'CrossSL.Meta.dll'" +
+                DebugLog.UsageError("Found assembly '" + asmName + "' but meta assembly 'CrossSL.Meta.dll'" +
                                       "\nis missing. It needs to be in the same directory:\n\n" + asmDir);
                 return -1;
             }
@@ -77,13 +83,13 @@ namespace CrossSL
             var debugFile = Path.ChangeExtension(inputPath, "pdb");
             var debugName = Path.GetFileName(debugFile);
 
-            xSLConsole.Verbose = File.Exists(debugFile);
-            Console.WriteLine(xSLConsole.Verbose
+            DebugLog.Verbose = File.Exists(debugFile);
+            Console.WriteLine(DebugLog.Verbose
                 ? "Found also .pdb file '" + debugName + "'. This allows for better debugging."
                 : "Found no .pdb file '" + debugName + "'. Extended debugging has been disabled.");
 
             // read assembly (and symbols) with Mono.Cecil
-            var readParams = new ReaderParameters {ReadSymbols = xSLConsole.Verbose};
+            var readParams = new ReaderParameters {ReadSymbols = DebugLog.Verbose};
             var asm = AssemblyDefinition.ReadAssembly(inputPath, readParams);
 
             // read meta assembly (without symbols) with Mono.Cecil
@@ -99,9 +105,9 @@ namespace CrossSL
 
             foreach (var asmType in asmShaderTypes)
             {
-                xSLConsole.Reset();
+                DebugLog.Reset();
 
-                if (xSLConsole.Verbose)
+                if (DebugLog.Verbose)
                 {
                     // load symbols from pdb file
                     var asmModule = asmType.Module;
@@ -137,7 +143,7 @@ namespace CrossSL
                 if (targetAttr == null)
                 {
                     shaderDesc.Target = new ShaderTarget {Envr = xSLEnvironment.OpenGL, Version = 110, VersionID = 0};
-                    xSLConsole.Error("Could not find [xSLTarget]. Please specify the targeted shading language");
+                    DebugLog.Error("Could not find [xSLTarget]. Please specify the targeted shading language");
                 }
                 else
                 {
@@ -161,7 +167,7 @@ namespace CrossSL
                             break;
                     }
 
-                    var vStr = xSLVersion.VIDs[(int) shaderTarget.Envr][versionID];
+                    var vStr = SLVersion.VIDs[(int) shaderTarget.Envr][versionID];
 
                     shaderTarget.Version = Int32.Parse(vStr);
                     shaderDesc.Target = shaderTarget;
@@ -184,7 +190,7 @@ namespace CrossSL
                 {
                     shaderDesc.DebugFlags = xSLDebug.None;
                     Console.WriteLine("  => Could not find [xSLDebug]. Debugging has been disabled.");
-                    xSLConsole.Disabled = true;
+                    DebugLog.Disabled = true;
                 }
                 else
                 {
@@ -212,13 +218,13 @@ namespace CrossSL
                     attrType => attrType.AttributeType.IsType<xSLPrecisionAttribute>());
 
                 shaderDesc.Precision = new CustomAttribute[2];
-                shaderDesc.Precision[(int) xSLShaderType.VertexShader] = vertPrecAttr;
-                shaderDesc.Precision[(int) xSLShaderType.FragmentShader] = fragPrecAttr;
+                shaderDesc.Precision[(int) SLShaderType.VertexShader] = vertPrecAttr;
+                shaderDesc.Precision[(int) SLShaderType.FragmentShader] = fragPrecAttr;
 
                 // get default file for this shader in case no instructions are available
                 var defaultSeq = vertexMain.Body.Instructions[0].SequencePoint;
 
-                xSLConsole.DefaultFile = defaultSeq != null ? Path.GetFileName(defaultSeq.Document.Url) : asmTypeName;
+                DebugLog.DefaultFile = defaultSeq != null ? Path.GetFileName(defaultSeq.Document.Url) : asmTypeName;
 
                 // check if there are additional constructors for field/property initialization
                 var ctorMethods = asmType.Methods.Where(asmMethod => asmMethod.IsConstructor);
@@ -238,7 +244,7 @@ namespace CrossSL
                     else
                     {
                         var instr = ctorMethod.Body.Instructions[0];
-                        xSLConsole.Warning("Found a constructor with no valid content", instr);
+                        DebugLog.Warning("Found a constructor with no valid content", instr);
                     }
                 }
 
@@ -246,7 +252,7 @@ namespace CrossSL
                 Console.WriteLine("\n  2. Collecting information about fields and properties.");
 
                 var variables = new Collection<VariableDesc>();
-                var varTypes = Enum.GetNames(typeof (xSLVariableType));
+                var varTypes = Enum.GetNames(typeof (SLVariableType));
 
                 // read and gather fields and backing fields
                 foreach (var asmField in asmType.Fields)
@@ -279,16 +285,16 @@ namespace CrossSL
                     var varType = (isProp) ? "Property '" : "Field '";
 
                     if (asmField.IsStatic && !asmField.HasConstant)
-                        xSLConsole.Error(varType + fdName + "' cannot be static");
+                        DebugLog.Error(varType + fdName + "' cannot be static");
                     else if (validFd)
                     {
                         var fdAttrName = attrs.First(attr => varTypes.Contains(attr.AttributeType.Name));
-                        var fdAttr = (xSLVariableType) Array.IndexOf(varTypes, fdAttrName.AttributeType.Name);
+                        var fdAttr = (SLVariableType) Array.IndexOf(varTypes, fdAttrName.AttributeType.Name);
 
                         if (asmField.HasConstant)
                         {
-                            if (fdAttr != xSLVariableType.xSLConstAttribute)
-                                xSLConsole.Error(varType + "constant " + fdName + "' has an invalid attribute");
+                            if (fdAttr != SLVariableType.xSLConstAttribute)
+                                DebugLog.Error(varType + "constant " + fdName + "' has an invalid attribute");
 
                             varDesc.Value = asmField.Constant;
                         }
@@ -300,7 +306,7 @@ namespace CrossSL
                         variables.Add(varDesc);
                     }
                     else
-                        xSLConsole.Error(varType + fdName + "' is neither a constant nor has valid attributes");
+                        DebugLog.Error(varType + fdName + "' is neither a constant nor has valid attributes");
                 }
 
                 shaderDesc.Variables = variables;
@@ -315,10 +321,10 @@ namespace CrossSL
                 shaderDesc.Funcs = new IEnumerable<FunctionDesc>[2];
 
                 var vertexFuncs = shaderTranslator.Translate(shaderDesc.Target, vertexMain);
-                shaderDesc.Funcs[(int) xSLShaderType.VertexShader] = vertexFuncs;
+                shaderDesc.Funcs[(int) SLShaderType.VertexShader] = vertexFuncs;
 
                 var fragmentFuncs = shaderTranslator.Translate(shaderDesc.Target, fragmentMain);
-                shaderDesc.Funcs[(int) xSLShaderType.FragmentShader] = fragmentFuncs;
+                shaderDesc.Funcs[(int) SLShaderType.FragmentShader] = fragmentFuncs;
 
                 // check correct use of constants
                 foreach (var ctor in customCtors)
@@ -334,7 +340,7 @@ namespace CrossSL
                         var name = illegalVar.Definition.Name;
                         var instr = illegalVar.Instruction;
 
-                        xSLConsole.Error("Illegal use of '" + name + "' in a constructor", instr);
+                        DebugLog.Error("Illegal use of '" + name + "' in a constructor", instr);
                     }
 
                     foreach (var constVar in allGlobVars)
@@ -345,38 +351,38 @@ namespace CrossSL
                         var name = constVar.Definition.Name;
                         var instr = constVar.Instruction;
 
-                        if (globVar.Attribute != xSLVariableType.xSLConstAttribute)
-                            xSLConsole.Error("Variable '" + name + "' is used as a constant but not marked as such'",
+                        if (globVar.Attribute != SLVariableType.xSLConstAttribute)
+                            DebugLog.Error("Variable '" + name + "' is used as a constant but not marked as such'",
                                 instr);
                         else if (globVar.Value != null && constVar.Value != null)
-                            xSLConsole.Error("Constant '" + name + "' cannot be set more than once", instr);
+                            DebugLog.Error("Constant '" + name + "' cannot be set more than once", instr);
                         else if (constVar.Value is String)
-                            xSLConsole.Error("Constant '" + name + "' was initialized with an invalid value", instr);
+                            DebugLog.Error("Constant '" + name + "' was initialized with an invalid value", instr);
                         else
                             shaderDesc.Variables[index].Value = constVar.Value;
                     }
                 }
 
                 // build both shaders
-                var vertexResult = shaderTranslator.BuildShader(xSLShaderType.VertexShader);
-                var fragmentResult = shaderTranslator.BuildShader(xSLShaderType.FragmentShader);
+                var vertexResult = shaderTranslator.BuildShader(SLShaderType.VertexShader);
+                var fragmentResult = shaderTranslator.BuildShader(SLShaderType.FragmentShader);
                 shaderDesc = shaderTranslator.ShaderDesc;
 
                 // see if there are unused fields/properties
                 var unusedVars = shaderDesc.Variables.Where(var => !var.IsReferenced);
-                unusedVars = unusedVars.Where(var => var.Attribute != xSLVariableType.xSLConstAttribute);
+                unusedVars = unusedVars.Where(var => var.Attribute != SLVariableType.xSLConstAttribute);
 
                 foreach (var unsedVar in unusedVars)
-                    xSLConsole.Warning("Variable '" + unsedVar.Definition.Name + "' was declared but not used");
+                    DebugLog.Warning("Variable '" + unsedVar.Definition.Name + "' was declared but not used");
 
-                if (!xSLConsole.Abort)
+                if (!DebugLog.Abort)
                 {
                     Console.WriteLine("\n  4. Building vertex and fragment shader.");
 
                     // debugging: save to file first, then precompile
                     Console.WriteLine("\n  5. Applying debugging flags if any.");
 
-                    if (!xSLConsole.Abort && (xSLDebug.SaveToFile & shaderDesc.DebugFlags) != 0)
+                    if (!DebugLog.Abort && (xSLDebug.SaveToFile & shaderDesc.DebugFlags) != 0)
                     {
                         var directory = Path.GetDirectoryName(inputPath);
 
@@ -393,7 +399,7 @@ namespace CrossSL
                         }
                     }
 
-                    if (!xSLConsole.Abort && (xSLDebug.PreCompile & shaderDesc.DebugFlags) != 0)
+                    if (!DebugLog.Abort && (xSLDebug.PreCompile & shaderDesc.DebugFlags) != 0)
                         shaderTranslator.PreCompile(vertexResult, fragmentResult);
                 }
                 else
@@ -402,7 +408,7 @@ namespace CrossSL
                     Console.WriteLine("\n  5. Applying debugging flags if any.");
                 }
 
-                if (xSLConsole.Abort)
+                if (DebugLog.Abort)
                 {
                     if ((xSLDebug.ThrowException & shaderDesc.DebugFlags) != 0)
                     {
@@ -420,7 +426,7 @@ namespace CrossSL
 
                 var instrList = new List<Instruction>();
 
-                if (!xSLConsole.Abort)
+                if (!DebugLog.Abort)
                 {
                     Console.WriteLine("\n  6. Preparing to update meta assembly for this shader.");
 
@@ -443,9 +449,9 @@ namespace CrossSL
                 }
 
                 // apply debug mode ThrowException
-                if (xSLConsole.Abort && (xSLDebug.ThrowException & shaderDesc.DebugFlags) != 0)
+                if (DebugLog.Abort && (xSLDebug.ThrowException & shaderDesc.DebugFlags) != 0)
                 {
-                    var errors = xSLConsole.Errors.ToString().Replace("    =>", "=>");
+                    var errors = DebugLog.Errors.ToString().Replace("    =>", "=>");
                     var errField = GenericFieldReference(genShader, instShader, "_error");
 
                     instrList.Add(Instruction.Create(OpCodes.Ldstr, errors));
@@ -454,7 +460,7 @@ namespace CrossSL
 
                 shaderDesc.Instructions = instrList;
 
-                Console.WriteLine(xSLConsole.Abort
+                Console.WriteLine(DebugLog.Abort
                     ? "\n  ---- Translation failed ----"
                     : "\n  ---- Translation succeeded ----");
 
@@ -505,7 +511,7 @@ namespace CrossSL
                 }
             }
 
-            xSLConsole.UsageError("\nDone.");
+            DebugLog.UsageError("\nDone.");
             return 0;
         }
     }

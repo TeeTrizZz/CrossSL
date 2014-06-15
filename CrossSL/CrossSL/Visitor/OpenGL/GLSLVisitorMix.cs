@@ -14,7 +14,7 @@ namespace CrossSL
         public override StringBuilder VisitWhileStatement(WhileStatement whileStmt)
         {
             var instr = GetInstructionFromStmt(whileStmt);
-            xSLConsole.Error("While loops are not supported in GLSLES", instr);
+            DebugLog.Error("While loops are not supported in GLSLES", instr);
 
             return new StringBuilder();
         }

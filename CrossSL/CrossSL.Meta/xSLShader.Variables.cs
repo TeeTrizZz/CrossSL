@@ -10,24 +10,6 @@ namespace CrossSL.Meta
 
     public abstract partial class xSLShader
     {
-        [AttributeUsage(AttributeTargets.Property)]
-        private sealed class VertexShaderAttribute : Attribute
-        {
-            // dummy implementation
-        }
-
-        [AttributeUsage(AttributeTargets.Property)]
-        private sealed class FragmentShaderAttribute : Attribute
-        {
-            // dummy implementation
-        }
-
-        [AttributeUsage(AttributeTargets.Property)]
-        private sealed class MandatoryAttribute : Attribute
-        {
-            // dummy implementation
-        }
-
         #region VERTEX/FRAGMENT SHADER VARIABLES
 
         // vertex/fragment shader / attribute variables (RO)

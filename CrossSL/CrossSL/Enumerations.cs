@@ -2,13 +2,13 @@
 {
     // ReSharper disable InconsistentNaming
 
-    internal enum xSLShaderType
+    internal enum SLShaderType
     {
         VertexShader,
         FragmentShader
     }
 
-    internal static class xSLVersion
+    internal static class SLVersion
     {
         internal static string[][] VIDs =
         {
@@ -36,7 +36,7 @@
         };
     }
 
-    internal enum xSLVariableType
+    internal enum SLVariableType
     {
         xSLUnknown,
         xSLAttributeAttribute,

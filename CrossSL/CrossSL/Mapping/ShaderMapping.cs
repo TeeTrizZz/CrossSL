@@ -46,15 +46,14 @@ namespace CrossSL
         ///     without the need to manually update the fields of this class.
         /// </summary>
         /// <remarks>
-        ///     Some data types have to be resolved by reflection, as they are protected
-        ///     and nested into the <see cref="xSLShader" /> class. They and their methods
-        ///     are marked with the <see cref="xSLShader.MappingAttribute" /> attribute,
-        ///     which contains their GLSL equivalent as the constructor argument.
+        ///     The <see cref="xSLShader" /> types and their methods are marked with the
+        ///     <see cref="xSLShader.MappingAttribute" /> attribute, which contains their
+        ///     GLSL equivalent as the constructor argument.
         /// </remarks>
         protected void UpdateMapping()
         {
             var nestedTypes = typeof (xSLShader).GetNestedTypes(BindingFlags.NonPublic);
-            var mappingAttr = nestedTypes.FirstOrDefault(type => type.Name == "MappingAttribute");
+            var mappingAttr = nestedTypes.FirstOrDefault(type => type == typeof(xSLShader.MappingAttribute));
 
             // type mapping
             var dataTypes = nestedTypes.Where(type => type.GetCustomAttribute(mappingAttr) != null);

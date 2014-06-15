@@ -7,6 +7,8 @@ using CrossSL.Meta;
 using Mono.Cecil;
 using Mono.Collections.Generic;
 
+using xSLEnvironment = CrossSL.Meta.xSLShader.xSLEnvironment;
+
 namespace CrossSL
 {
     internal abstract class ShaderTranslator
@@ -26,9 +28,9 @@ namespace CrossSL
             switch (target.Envr)
             {
                 case xSLEnvironment.OpenGL:
-                    switch ((xSLTarget.GLSL) target.VersionID)
+                    switch ((xSLShader.xSLTarget.GLSL) target.VersionID)
                     {
-                        case xSLTarget.GLSL.V110:
+                        case xSLShader.xSLTarget.GLSL.V110:
                             return new GLSLTranslator110();
 
                         default:
@@ -59,7 +61,7 @@ namespace CrossSL
                 var strAdd = (retType != typeof (Object)) ? " '" + retType.Name + "'" : String.Empty;
 
                 var instr = method.Body.Instructions[0];
-                xSLConsole.Error("Method has an unsupported return type" + strAdd, instr);
+                DebugLog.Error("Method has an unsupported return type" + strAdd, instr);
 
                 return null;
             }
@@ -85,7 +87,7 @@ namespace CrossSL
                     var strAdd = (paramType != typeof (Object)) ? " '" + paramType.Name + "'" : String.Empty;
 
                     var instr = method.Body.Instructions[0];
-                    xSLConsole.Error("Method has a parameter of the unsupported type" + strAdd, instr);
+                    DebugLog.Error("Method has a parameter of the unsupported type" + strAdd, instr);
 
                     return null;
                 }
@@ -161,7 +163,7 @@ namespace CrossSL
                 if (!ShaderMapping.Types.ContainsKey(varType))
                 {
                     var strAdd = (varType != typeof (Object)) ? " type '" + varType.Name + "' " : " a type ";
-                    xSLConsole.Error(varType + varName + "' is of" + strAdd + "which is not supported.");
+                    DebugLog.Error(varType + varName + "' is of" + strAdd + "which is not supported.");
                 }
             }
         }
@@ -172,54 +174,54 @@ namespace CrossSL
         /// <param name="shaderType">Type of the shader.</param>
         /// <param name="varDescs">The variable descs.</param>
         /// <param name="refVars">The referenced variables.</param>
-        private void PostVariableCheck(xSLShaderType shaderType, Collection<VariableDesc> varDescs,
+        private void PostVariableCheck(SLShaderType shaderType, Collection<VariableDesc> varDescs,
             List<VariableDesc> refVars)
         {
             // check if varyings and attributes are used properly
-            var varVars = varDescs.Where(var => var.Attribute == xSLVariableType.xSLVaryingAttribute);
+            var varVars = varDescs.Where(var => var.Attribute == SLVariableType.xSLVaryingAttribute);
 
-            if (shaderType == xSLShaderType.FragmentShader)
+            if (shaderType == SLShaderType.FragmentShader)
             {
                 foreach (var invalidVar in varVars.Where(var => !var.IsReferenced))
-                    xSLConsole.Error("Varying '" + invalidVar.Definition.Name + "' is used in 'FragmentShader()'" +
-                                     " but was not set in 'VertexShader()'", invalidVar.Instruction);
+                    DebugLog.Error("Varying '" + invalidVar.Definition.Name + "' is used in 'FragmentShader()'" +
+                                   " but was not set in 'VertexShader()'", invalidVar.Instruction);
 
-                var attrVars = varDescs.Where(var => var.Attribute == xSLVariableType.xSLAttributeAttribute).ToList();
+                var attrVars = varDescs.Where(var => var.Attribute == SLVariableType.xSLAttributeAttribute).ToList();
 
                 foreach (var invalidVar in attrVars)
-                    xSLConsole.Error("Attribute '" + invalidVar.Definition.Name + "' cannot be " +
-                                     "used in in 'FragmentShader()'" + invalidVar.Instruction);
+                    DebugLog.Error("Attribute '" + invalidVar.Definition.Name + "' cannot be " +
+                                   "used in in 'FragmentShader()'" + invalidVar.Instruction);
             }
             else
             {
-                var fragFunc = ShaderDesc.Funcs[(int) xSLShaderType.FragmentShader];
+                var fragFunc = ShaderDesc.Funcs[(int) SLShaderType.FragmentShader];
                 var mergedVars = fragFunc.SelectMany(func => func.Variables).ToList();
 
                 foreach (var invalidVar in varVars.Where(var => !mergedVars.Contains(var)))
-                    xSLConsole.Warning("Varying '" + invalidVar.Definition.Name + "' was set in 'VertexShader()'" +
-                                       " but is not used in 'FragmentShader()'", invalidVar.Instruction);
+                    DebugLog.Warning("Varying '" + invalidVar.Definition.Name + "' was set in 'VertexShader()'" +
+                                     " but is not used in 'FragmentShader()'", invalidVar.Instruction);
             }
 
             // check if constants have been set
-            var constVars = varDescs.Where(var => var.Attribute == xSLVariableType.xSLConstAttribute).ToList();
+            var constVars = varDescs.Where(var => var.Attribute == SLVariableType.xSLConstAttribute).ToList();
 
             foreach (var constVar in refVars.Where(constVars.Contains).Where(con => con.Value != null))
-                xSLConsole.Error("Constant '" + constVar.Definition.Name + "' cannot be initialized " +
-                                 "in 'VertexShader()'", constVar.Instruction);
+                DebugLog.Error("Constant '" + constVar.Definition.Name + "' cannot be initialized " +
+                               "in 'VertexShader()'", constVar.Instruction);
 
             foreach (var constVar in constVars.Where(var => var.Value == null))
             {
                 constVar.Value = ShaderDesc.Variables.First(var => var.Definition == constVar.Definition).Value;
                 if (constVar.Value != null) continue;
 
-                xSLConsole.Error("Constant '" + constVar.Definition.Name + "' was not initialized", constVar.Instruction);
+                DebugLog.Error("Constant '" + constVar.Definition.Name + "' was not initialized", constVar.Instruction);
             }
 
             // check if invalid variables are set
             var nestedTypes = typeof (xSLShader).GetNestedTypes(BindingFlags.NonPublic);
 
             var attrType = nestedTypes.FirstOrDefault(type => type.Name == shaderType + "Attribute");
-            var mandType = nestedTypes.FirstOrDefault(type => type.Name == "MandatoryAttribute");
+            var mandType = nestedTypes.FirstOrDefault(type => type == typeof(xSLShader.MandatoryAttribute));
 
             var allProps = typeof (xSLShader).GetProperties(BindingFlags.Instance | BindingFlags.NonPublic);
             var validProps = allProps.Where(prop => prop.CustomAttributes.Any(attr => attr.AttributeType == attrType));
@@ -231,7 +233,7 @@ namespace CrossSL
             foreach (var memberVar in globalNames.Where(var => !validNames.Contains(var)))
             {
                 var instr = globalVars.First(var => var.Definition.Name == memberVar).Instruction;
-                xSLConsole.Error("'" + memberVar + "' cannot be used in '" + shaderType + "()'", instr);
+                DebugLog.Error("'" + memberVar + "' cannot be used in '" + shaderType + "()'", instr);
             }
 
             // check if necessary variables are set
@@ -242,13 +244,13 @@ namespace CrossSL
                 var mandVarName = mandVar.Name;
 
                 if (validNames.Contains(mandVarName) && !globalNames.Contains(mandVarName))
-                    xSLConsole.Error("'" + mandVarName + "' has to be set in '" + shaderType + "()'");
+                    DebugLog.Error("'" + mandVarName + "' has to be set in '" + shaderType + "()'");
 
                 if (globalNames.Count(var => var == mandVarName) > 1)
                 {
                     var instr = globalVars.Last(var => var.Definition.Name == mandVarName).Instruction;
-                    xSLConsole.Warning("'" + mandVarName + "' has been set more than" +
-                                       " once in '" + shaderType + "()'", instr);
+                    DebugLog.Warning("'" + mandVarName + "' has been set more than" +
+                                     " once in '" + shaderType + "()'", instr);
                 }
             }
         }
@@ -258,14 +260,14 @@ namespace CrossSL
         /// </summary>
         /// <param name="shaderStr">The shader string.</param>
         /// <param name="shaderType">Type of the shader.</param>
-        protected abstract void SetPrecision(ref StringBuilder shaderStr, xSLShaderType shaderType);
+        protected abstract void SetPrecision(ref StringBuilder shaderStr, SLShaderType shaderType);
 
         /// <summary>
         ///     Builds the given type of shader.
         /// </summary>
         /// <param name="shaderType">Type of the shader.</param>
         /// <returns></returns>
-        internal virtual StringBuilder BuildShader(xSLShaderType shaderType)
+        internal virtual StringBuilder BuildShader(SLShaderType shaderType)
         {
             var result = new StringBuilder();
 
@@ -299,11 +301,11 @@ namespace CrossSL
 
             // check variables
             PostVariableCheck(shaderType, varDescs, refVars);
-            if (xSLConsole.Abort) return null;
+            if (DebugLog.Abort) return null;
 
             // add precision to output
             SetPrecision(ref result, shaderType);
-            if (xSLConsole.Abort) return null;
+            if (DebugLog.Abort) return null;
 
             // add variables to shader output
             foreach (var varDesc in varDescs.Distinct().OrderBy(var => var.Attribute))
@@ -323,7 +325,7 @@ namespace CrossSL
                     result.Append(valStr.Remove(valStr.IndexOf(']') + 1));
                 }
 
-                if (varDesc.Attribute == xSLVariableType.xSLConstAttribute)
+                if (varDesc.Attribute == SLVariableType.xSLConstAttribute)
                     result.Assign().Append(varDesc.Value);
 
                 result.Semicolon().NewLine();

@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using CrossSL.Meta;
 using Mono.Cecil;
+
+using xSLEnvironment = CrossSL.Meta.xSLShader.xSLEnvironment;
+using xSLPrecision = CrossSL.Meta.xSLShader.xSLPrecision;
 
 namespace CrossSL
 {
@@ -46,7 +48,7 @@ namespace CrossSL
         /// </summary>
         /// <param name="shaderStr">The shader string.</param>
         /// <param name="shaderType">Type of the shader.</param>
-        protected override void SetPrecision(ref StringBuilder shaderStr, xSLShaderType shaderType)
+        protected override void SetPrecision(ref StringBuilder shaderStr, SLShaderType shaderType)
         {
             var defaultPrec = true;
 
@@ -88,7 +90,7 @@ namespace CrossSL
             }
 
             // default precision
-            if (defaultPrec && shaderType == xSLShaderType.FragmentShader)
+            if (defaultPrec && shaderType == SLShaderType.FragmentShader)
                 shaderStr.Append(SetDefaultPrecision());
         }
 
@@ -102,28 +104,28 @@ namespace CrossSL
             if (GLSLCompiler.CanCheck(ShaderDesc.Target.Version))
             {
                 if (ShaderDesc.Target.Envr == xSLEnvironment.OpenGLES)
-                    xSLConsole.Warning("Shader will be tested on OpenGL but target is OpenGL ES");
+                    DebugLog.Warning("Shader will be tested on OpenGL but target is OpenGL ES");
 
                 if (ShaderDesc.Target.Envr == xSLEnvironment.OpenGLMix)
-                    xSLConsole.Warning("Shader will be tested on OpenGL but target is OpenGL and OpenGL ES");
+                    DebugLog.Warning("Shader will be tested on OpenGL but target is OpenGL and OpenGL ES");
 
-                var vertTest = GLSLCompiler.CreateShader(vertexShader, xSLShaderType.VertexShader);
+                var vertTest = GLSLCompiler.CreateShader(vertexShader, SLShaderType.VertexShader);
                 vertTest.Length = Math.Max(0, vertTest.Length - 3);
                 vertTest = vertTest.Replace("0(", "        => 0(");
 
-                var fragTest = GLSLCompiler.CreateShader(fragmentShader, xSLShaderType.FragmentShader);
+                var fragTest = GLSLCompiler.CreateShader(fragmentShader, SLShaderType.FragmentShader);
                 fragTest.Length = Math.Max(0, fragTest.Length - 3);
                 fragTest = fragTest.Replace("0(", "        => 0(");
 
                 if (vertTest.Length > 0)
-                    xSLConsole.Error("OpenGL found problems while compiling vertex shader:\n" + vertTest);
+                    DebugLog.Error("OpenGL found problems while compiling vertex shader:\n" + vertTest);
                 else if (fragTest.Length > 0)
-                    xSLConsole.Error("OpenGL found problems while compiling fragment shader:\n" + fragTest);
+                    DebugLog.Error("OpenGL found problems while compiling fragment shader:\n" + fragTest);
                 else
                     Console.WriteLine("        => Test was successful. OpenGL did not find any problems.");
             }
             else
-                xSLConsole.Warning("Cannot test shader as your graphics card does not support the targeted version.");
+                DebugLog.Warning("Cannot test shader as your graphics card does not support the targeted version.");
         }
     }
 }

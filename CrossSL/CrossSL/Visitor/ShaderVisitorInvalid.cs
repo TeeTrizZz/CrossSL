@@ -7,7 +7,7 @@ namespace CrossSL
     {
         private StringBuilder InvalidNode(AstNode invalidNode, string msg)
         {
-            xSLConsole.Error(msg, GetInstructionFromStmt(invalidNode.GetParent<Statement>()));
+            DebugLog.Error(msg, GetInstructionFromStmt(invalidNode.GetParent<Statement>()));
             return new StringBuilder();
         }
 

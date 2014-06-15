@@ -7,15 +7,6 @@ namespace CrossSL.Meta
 
     public abstract partial class xSLShader
     {
-        [AttributeUsage(AttributeTargets.Struct | AttributeTargets.Method)]
-        private sealed class MappingAttribute : Attribute
-        {
-            public MappingAttribute(string GLSL)
-            {
-                // dummy implementation            
-            }
-        }
-
         [Mapping("sampler2D")]
         protected struct sampler2D
         {

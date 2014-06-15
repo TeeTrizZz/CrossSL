@@ -12,7 +12,7 @@ namespace CrossSL
 
         protected override StringBuilder SetDefaultPrecision()
         {
-            xSLConsole.Warning("Target GLSLES requires [xSLPrecision] at 'FragmentShader()' to set " +
+            DebugLog.Warning("Target GLSLES requires [xSLPrecision] at 'FragmentShader()' to set " +
                                "the precision of data type 'float'. Using high precision as default");
 
             return new StringBuilder("precision highp float;").NewLine(2);
