@@ -7,7 +7,7 @@ using Mono.Cecil;
 
 namespace CrossSL
 {
-    internal sealed class GLSLVisitor110 : GLSLVisitor
+    internal class GLSLVisitor110 : GLSLVisitor
     {
         /// <summary>
         ///     Translates a primitive type, e.g. "1f".
@@ -40,10 +40,8 @@ namespace CrossSL
         /// </remarks>
         public override StringBuilder VisitObjectCreateExpression(ObjectCreateExpression objCreateExpr)
         {
-            var result = base.VisitObjectCreateExpression(objCreateExpr);
-
             if (!(objCreateExpr.Type.GetType() == typeof (SimpleType)))
-                return result;
+                return base.VisitObjectCreateExpression(objCreateExpr);
 
             var simpleType = (SimpleType) objCreateExpr.Type;
             var dataType = simpleType.Annotation<TypeReference>().ToType();
@@ -57,11 +55,21 @@ namespace CrossSL
                 if (methodParam != null && methodParam.ParameterType.IsType<float4x4>())
                 {
                     var instr = GetInstructionFromStmt(objCreateExpr.GetParent<Statement>());
-                    xSLConsole.Error("Matrix casting (float4x4 to float3x3) is not supported in GLSL 1.0", instr);
+                    xSLConsole.Warning("Matrix casting (float4x4 to float3x3) is not supported " +
+                                       " in GLSL 1.1. Expression has been converted automatically", instr);
+
+                    var argName = objCreateExpr.Arguments.First().AcceptVisitor(this);
+
+                    var row1 = argName + "[0].xyz";
+                    var row2 = argName + "[1].xyz";
+                    var row3 = argName + "[2].xyz";
+
+                    var type = objCreateExpr.Type.AcceptVisitor(this).ToString();
+                    return new StringBuilder().Method(type, row1, row2, row3);
                 }
             }
 
-            return new StringBuilder();
+            return base.VisitObjectCreateExpression(objCreateExpr);
         }
     }
 }

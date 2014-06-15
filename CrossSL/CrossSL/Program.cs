@@ -11,7 +11,7 @@ using Mono.Collections.Generic;
 
 namespace CrossSL
 {
-    internal sealed class Program
+    internal static class Program
     {
         private static bool MethodExists(TypeDefinition asmType, string methodName, out MethodDefinition method)
         {
@@ -39,6 +39,9 @@ namespace CrossSL
         private static int Main(string[] args)
         {
             Console.WriteLine("---------------------- CrossSL V1.0 ----------------------");
+
+            args = new string[1];
+            args[0] = @"E:\Dropbox\HS Furtwangen\7. Semester\Thesis\dev\CrossSL\Example\bin\Debug\Example.exe";
 
             if (args.Length == 0 || String.IsNullOrEmpty(args[0]))
             {
@@ -134,7 +137,7 @@ namespace CrossSL
                 if (targetAttr == null)
                 {
                     shaderDesc.Target = new ShaderTarget {Envr = xSLEnvironment.OpenGL, Version = 110, VersionID = 0};
-                    Console.WriteLine("  => WARNING: Could not find [xSLTarget]. Compiling shader as GLSL 1.1.");
+                    xSLConsole.Error("Could not find [xSLTarget]. Please specify the targeted shading language");
                 }
                 else
                 {
@@ -173,11 +176,15 @@ namespace CrossSL
                     Console.WriteLine("  => Found [xSLTarget]. Compiling shader as " + typeName + " " + vStr + ".");
                 }
 
+                var shaderTranslator = ShaderTranslator.GetTranslator(shaderDesc.Target);
+                shaderTranslator.ShaderDesc = shaderDesc;
+
                 // save debug settings
                 if (debugAttr == null)
                 {
                     shaderDesc.DebugFlags = xSLDebug.None;
-                    Console.WriteLine("  => WARNING: Could not find [xSLDebug]. Debugging has been disabled.");
+                    Console.WriteLine("  => Could not find [xSLDebug]. Debugging has been disabled.");
+                    xSLConsole.Disabled = true;
                 }
                 else
                 {
@@ -248,9 +255,8 @@ namespace CrossSL
 
                     var fdName = asmField.Name;
                     var fdType = asmField.FieldType.ToType();
-
+                    var fdArray = asmField.FieldType.IsArray;
                     var attrs = asmField.CustomAttributes;
-                    var attrCt = attrs.Count(attr => varTypes.Contains(attr.AttributeType.Name));
 
                     var isProp = fdName.Contains("<");
 
@@ -264,27 +270,32 @@ namespace CrossSL
 
                         attrs = asmProp.CustomAttributes;
                         fdType = asmProp.PropertyType.ToType();
+                        fdArray = asmProp.PropertyType.IsArray;
                     }
 
-                    var validFd = asmField.HasConstant ^ attrCt == 1 ^ isProp;
+                    var attrCt = attrs.Count(attr => varTypes.Contains(attr.AttributeType.Name));
+
+                    var validFd = (asmField.HasConstant || attrCt == 1);
                     var varType = (isProp) ? "Property '" : "Field '";
 
-                    if (asmField.IsStatic)
+                    if (asmField.IsStatic && !asmField.HasConstant)
                         xSLConsole.Error(varType + fdName + "' cannot be static");
                     else if (validFd)
                     {
-                        var fdAttr = xSLVariableType.xSLConstAttribute;
+                        var fdAttrName = attrs.First(attr => varTypes.Contains(attr.AttributeType.Name));
+                        var fdAttr = (xSLVariableType) Array.IndexOf(varTypes, fdAttrName.AttributeType.Name);
 
-                        if (!asmField.HasConstant)
+                        if (asmField.HasConstant)
                         {
-                            var fdAttrName = attrs.First(attr => varTypes.Contains(attr.AttributeType.Name));
-                            fdAttr = (xSLVariableType) Array.IndexOf(varTypes, fdAttrName.AttributeType.Name);
-                        }
-                        else
+                            if (fdAttr != xSLVariableType.xSLConstAttribute)
+                                xSLConsole.Error(varType + "constant " + fdName + "' has an invalid attribute");
+
                             varDesc.Value = asmField.Constant;
+                        }
 
                         varDesc.DataType = fdType;
                         varDesc.Attribute = fdAttr;
+                        varDesc.IsArray = fdArray;
 
                         variables.Add(varDesc);
                     }
@@ -293,11 +304,9 @@ namespace CrossSL
                 }
 
                 shaderDesc.Variables = variables;
+                shaderTranslator.PreVariableCheck();
 
                 // translate main, depending methods and constructors
-                var shaderTranslator = ShaderTranslator.GetTranslator(shaderDesc.Target);
-                shaderTranslator.ShaderDesc = shaderDesc;
-
                 if (shaderDesc.Target.Envr == xSLEnvironment.OpenGLMix)
                     Console.WriteLine("\n  3. Translating shader from C# to GLSL/GLSLES.");
                 else
@@ -349,51 +358,23 @@ namespace CrossSL
                 }
 
                 // build both shaders
-                var vertexResult = shaderTranslator.BuildShader(ref shaderDesc, xSLShaderType.VertexShader);
-                var fragmentResult = shaderTranslator.BuildShader(ref shaderDesc, xSLShaderType.FragmentShader);
+                var vertexResult = shaderTranslator.BuildShader(xSLShaderType.VertexShader);
+                var fragmentResult = shaderTranslator.BuildShader(xSLShaderType.FragmentShader);
+                shaderDesc = shaderTranslator.ShaderDesc;
 
                 // see if there are unused fields/properties
                 var unusedVars = shaderDesc.Variables.Where(var => !var.IsReferenced);
+                unusedVars = unusedVars.Where(var => var.Attribute != xSLVariableType.xSLConstAttribute);
 
                 foreach (var unsedVar in unusedVars)
-                    xSLConsole.Warning("Variable '" + unsedVar.Definition.Name + "' was declared but is not used");
+                    xSLConsole.Warning("Variable '" + unsedVar.Definition.Name + "' was declared but not used");
 
                 if (!xSLConsole.Abort)
                 {
                     Console.WriteLine("\n  4. Building vertex and fragment shader.");
 
-                    // debugging: precompile first then save to file
+                    // debugging: save to file first, then precompile
                     Console.WriteLine("\n  5. Applying debugging flags if any.");
-
-                    if (!xSLConsole.Abort && (xSLDebug.PreCompile & shaderDesc.DebugFlags) != 0)
-                    {
-                        if (GLSLCompiler.CanCheck(shaderDesc.Target.Version))
-                        {
-                            if (shaderDesc.Target.Envr == xSLEnvironment.OpenGLES)
-                                xSLConsole.Warning("Shader will be tested on OpenGL but target is OpenGL ES");
-
-                            if (shaderDesc.Target.Envr == xSLEnvironment.OpenGLMix)
-                                xSLConsole.Warning(
-                                    "Shader will only be tested on OpenGL but target is OpenGL and OpenGL ES");
-
-                            var vertTest = GLSLCompiler.CreateShader(vertexResult, xSLShaderType.VertexShader);
-                            vertTest.Length = Math.Max(0, vertTest.Length - 3);
-                            vertTest = vertTest.Replace("0(", "        => 0(");
-
-                            var fragTest = GLSLCompiler.CreateShader(fragmentResult, xSLShaderType.FragmentShader);
-                            fragTest.Length = Math.Max(0, fragTest.Length - 3);
-                            fragTest = fragTest.Replace("0(", "        => 0(");
-
-                            if (vertTest.Length > 0)
-                                xSLConsole.Error("OpenGL found problems while compiling vertex shader:\n" + vertTest);
-                            else if (fragTest.Length > 0)
-                                xSLConsole.Error("OpenGL found problems while compiling fragment shader:\n" + fragTest);
-                            else
-                                Console.WriteLine("        => Test was successful. OpenGL did not find any problems.");
-                        }
-                        else
-                            xSLConsole.Warning("Cannot test shader as your graphics card does not support GLSL.");
-                    }
 
                     if (!xSLConsole.Abort && (xSLDebug.SaveToFile & shaderDesc.DebugFlags) != 0)
                     {
@@ -411,6 +392,9 @@ namespace CrossSL
                             Console.WriteLine("    => Saved shader to: '" + filePath + "'");
                         }
                     }
+
+                    if (!xSLConsole.Abort && (xSLDebug.PreCompile & shaderDesc.DebugFlags) != 0)
+                        shaderTranslator.PreCompile(vertexResult, fragmentResult);
                 }
                 else
                 {
@@ -509,7 +493,7 @@ namespace CrossSL
                     foreach (var shaderDesc in shaderDescs)
                         if (shaderDesc.Instructions.Count() > 2)
                             Console.WriteLine("  => Added shader '" + shaderDesc.Name + "' to assembly.");
-                        else
+                        else if (shaderDesc.Instructions.Any())
                             Console.WriteLine("  => [ThrowException] mode was applied for shader '" +
                                               shaderDesc.Name + "'.");
 

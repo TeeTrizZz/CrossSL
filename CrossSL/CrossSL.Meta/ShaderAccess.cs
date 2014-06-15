@@ -51,7 +51,7 @@ namespace CrossSL.Meta
         private static void ShaderInfo()
         {
             if (!_translated)
-                Debug.WriteLine("xSL: Shader '" + typeof(TShader).Name +
+                Debug.WriteLine("xSL: Shader '" + typeof (TShader).Name +
                                 "' has not been translated.");
 
             if (_error.Length > 0)

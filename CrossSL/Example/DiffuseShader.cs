@@ -7,7 +7,6 @@ using Fusee.Math;
 namespace Example
 {
     [xSLTarget(xSLTarget.GLSLMix.V110)]
-    [xSLDebug(xSLDebug.PreCompile | xSLDebug.SaveToFile | xSLDebug.ThrowException)]
     public class DiffuseShader : xSLShader
     {
         // Vertex Shader
@@ -99,9 +98,7 @@ namespace Example
                         ref endIntensity);
             }
 
-            xslFragColor = new float4(0, 0, 0, 0);
-            //xslPosition = new float4(0, 0, 0, 0);
-            //glFragColor = texture2D(_texture1, _vUV)*endIntensity;
+            xslFragColor = Texture2D(_texture1, _vUV)*endIntensity;
         }
     }
 }

@@ -44,6 +44,19 @@ namespace CrossSL
         }
 
         /// <summary>
+        ///     Translates a while loop, e.g. "while (val) { ... }".
+        /// </summary>
+        public override StringBuilder VisitWhileStatement(WhileStatement whileStmt)
+        {
+            var result = new StringBuilder();
+
+            var cond = whileStmt.Condition.AcceptVisitor(this);
+            var stmt = whileStmt.EmbeddedStatement.AcceptVisitor(this);
+
+            return result.Method("while ", cond.ToString()).Block(stmt);
+        }
+
+        /// <summary>
         ///     Translates a simple data type, e.g. "float4".
         /// </summary>
         public override StringBuilder VisitSimpleType(SimpleType simpleType)
@@ -54,6 +67,25 @@ namespace CrossSL
             return mappedType == null
                 ? new StringBuilder(simpleType.ToString())
                 : new StringBuilder(mappedType);
+        }
+
+        /// <summary>
+        ///     Translates a composed data type, e.g. "float4".
+        /// </summary>
+        /// <remarks>
+        ///     Exact purpose is unknown. This has something to do with arrays.
+        /// </remarks>
+        public override StringBuilder VisitComposedType(ComposedType composedType)
+        {
+            return composedType.BaseType.AcceptVisitor(this);
+        }
+
+        /// <summary>
+        ///     Translates an array specifier, e.g. "[10]".
+        /// </summary>
+        public override StringBuilder VisitArraySpecifier(ArraySpecifier arraySpecifier)
+        {
+            return new StringBuilder(arraySpecifier.Dimensions);
         }
 
         /// <summary>
@@ -90,6 +122,23 @@ namespace CrossSL
         public override StringBuilder VisitExpressionStatement(ExpressionStatement exprStmt)
         {
             return exprStmt.Expression.AcceptVisitor(this).Semicolon();
+        }
+
+        /// <summary>
+        ///     Translates a for loop, e.g. "for (int x = 0; x &lt; 5; x++) { ... }".
+        /// </summary>
+        public override StringBuilder VisitForStatement(ForStatement forStmt)
+        {
+            var init = JoinArgs(forStmt.Initializers);
+            var cond = forStmt.Condition.AcceptVisitor(this).Semicolon();
+
+            var iterator = JoinArgs(forStmt.Iterators);
+            iterator.Length--;
+
+            var loopSig = init.Space().Append(cond).Space().Append(iterator);
+            var stmt = forStmt.EmbeddedStatement.AcceptVisitor(this);
+
+            return new StringBuilder().Method("for ", loopSig.ToString()).Space().Block(stmt);
         }
 
         /// <summary>
@@ -130,7 +179,8 @@ namespace CrossSL
                         var refVar = RefVariables.Last(var => var.Definition == memberRef);
 
                         if (assignmentExpr.Right.IsType<ObjectCreateExpression>() ||
-                            assignmentExpr.Right.IsType<PrimitiveExpression>())
+                            assignmentExpr.Right.IsType<PrimitiveExpression>() ||
+                            assignmentExpr.Right.IsType<ArrayCreateExpression>())
                             RefVariables[RefVariables.IndexOf(refVar)].Value = rightRes;
                         else
                             RefVariables[RefVariables.IndexOf(refVar)].Value = "Exception";
@@ -186,6 +236,46 @@ namespace CrossSL
             }
 
             return result;
+        }
+
+        /// <summary>
+        ///     Translates an array creation expression, e.g. "new float[] { ... }".
+        /// </summary>
+        public override StringBuilder VisitArrayCreateExpression(ArrayCreateExpression arrayCreateExpr)
+        {
+            var type = arrayCreateExpr.Type.AcceptVisitor(this);
+            var spec = arrayCreateExpr.AdditionalArraySpecifiers.First().AcceptVisitor(this);
+            var init = arrayCreateExpr.Initializer.AcceptVisitor(this);
+
+            if (spec.Length == 0)
+            {
+                var initCt = init.ToString().Count(str => str == ',') + 1;
+                spec = new StringBuilder(initCt.ToString(CultureInfo.InvariantCulture));
+            }
+
+            type.Append("[").Append(spec).Append("] ");
+            return new StringBuilder().Method(type.ToString(), init.ToString());
+        }
+
+        /// <summary>
+        ///     Translates an array initializer, e.g. "{1, 2, 3, 4, ...}".
+        /// </summary>
+        public override StringBuilder VisitArrayInitializerExpression(ArrayInitializerExpression arrayInitExpr)
+        {
+            return JoinArgs(arrayInitExpr.Elements);
+        }
+
+        /// <summary>
+        ///     Translates a cast expression, e.g. "(float) value".
+        /// </summary>
+        public override StringBuilder VisitCastExpression(CastExpression castExpr)
+        {
+            var result = new StringBuilder();
+
+            var castTo = castExpr.Type.AcceptVisitor(this);
+            var castVal = castExpr.Expression.AcceptVisitor(this);
+
+            return result.Method(castTo.ToString(), castVal.ToString());
         }
 
         /// <summary>
@@ -331,6 +421,27 @@ namespace CrossSL
         }
 
         /// <summary>
+        ///     Translates a conditional expression, e.g. "(x > 0) ? 1 : -1".
+        /// </summary>
+        public override StringBuilder VisitConditionalExpression(ConditionalExpression conditionalExpr)
+        {
+            var result = conditionalExpr.Condition.AcceptVisitor(this);
+            var trueExpr = conditionalExpr.TrueExpression.AcceptVisitor(this);
+            var falseExpr = conditionalExpr.FalseExpression.AcceptVisitor(this);
+
+            return result.Append(" ? ").Append(trueExpr).Append(" : ").Append(falseExpr);
+        }
+
+        /// <summary>
+        ///     Translates a default value expression, e.g. "float3()".
+        /// </summary>
+        public override StringBuilder VisitDefaultValueExpression(DefaultValueExpression defaultValueExpr)
+        {
+            var type = defaultValueExpr.Type.AcceptVisitor(this);
+            return new StringBuilder().Method(type.ToString(), "0");
+        }
+
+        /// <summary>
         ///     Translates a direction expression, e.g. "ref value" or "out value".
         /// </summary>
         public override StringBuilder VisitDirectionExpression(DirectionExpression directionExpr)
@@ -344,6 +455,16 @@ namespace CrossSL
         public override StringBuilder VisitIdentifierExpression(IdentifierExpression identifierExpr)
         {
             return new StringBuilder(identifierExpr.Identifier);
+        }
+
+        /// <summary>
+        ///     Translates an indexer expression, e.g. "value[x]".
+        /// </summary>
+        public override StringBuilder VisitIndexerExpression(IndexerExpression indexerExpr)
+        {
+            var args = JoinArgs(indexerExpr.Arguments);
+            var target = indexerExpr.Target.AcceptVisitor(this);
+            return target.Append("[").Append(args).Append("]");
         }
 
         /// <summary>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using CrossSL.Meta;
+using Fusee.Math;
 
 namespace CrossSL
 {
@@ -16,6 +17,7 @@ namespace CrossSL
         {
             {typeof (xSLShader), String.Empty},
             {typeof (Math), String.Empty},
+            {typeof (MathHelper), String.Empty},
 
             // data types
             {typeof (void), "void"},
@@ -33,6 +35,9 @@ namespace CrossSL
             {"Dot", "dot"},
             {"Max", "max"},
             {"Min", "min"},
+            {"Sin", "sin"},
+            {"Cos", "cos"},
+            {"Clamp", "clamp"}
         };
 
         /// <summary>

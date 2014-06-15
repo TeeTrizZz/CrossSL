@@ -3,9 +3,9 @@ using CrossSL.Meta;
 
 namespace Example
 {
-    class Program
+    internal class Program
     {
-        static void Main()
+        private static void Main()
         {
             Console.WriteLine(xSL<DiffuseShader>.FragmentShader);
             Console.WriteLine(xSL<DiffuseShader>.VertexShader);

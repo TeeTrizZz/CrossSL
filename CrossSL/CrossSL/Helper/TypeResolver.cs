@@ -5,7 +5,8 @@ using Mono.Cecil;
 
 namespace CrossSL
 {
-    static class TypeResolver
+    // ReSharper disable once InconsistentNaming
+    internal static partial class ExtensionMethods
     {
         /// <summary>
         ///     Extension for TypeReference:
@@ -28,7 +29,7 @@ namespace CrossSL
         {
             var fullName = typeDef.Module.Assembly.FullName;
             var typeName = Assembly.CreateQualifiedName(fullName, typeDef.FullName);
-            return Type.GetType(typeName.Replace('/', '+')) ?? typeof(Object);
+            return Type.GetType(typeName.Replace('/', '+')) ?? typeof (Object);
         }
 
         /// <summary>
@@ -40,7 +41,7 @@ namespace CrossSL
         /// <returns></returns>
         internal static bool IsType<T>(this TypeReference typeRef)
         {
-            return (typeRef.ToType() == typeof(T));
+            return (typeRef.ToType() == typeof (T));
         }
 
         /// <summary>
@@ -52,7 +53,7 @@ namespace CrossSL
         /// <returns></returns>
         internal static bool IsType<T>(this TypeDefinition typeDef)
         {
-            return (typeDef.ToType() == typeof(T));
+            return (typeDef.ToType() == typeof (T));
         }
 
         /// <summary>
@@ -64,7 +65,7 @@ namespace CrossSL
         /// <returns></returns>
         internal static bool IsType<T>(this Expression expr)
         {
-            return (expr.GetType() == typeof(T));
+            return (expr.GetType() == typeof (T));
         }
     }
 }

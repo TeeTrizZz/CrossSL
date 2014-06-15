@@ -1,9 +1,10 @@
-﻿using System;
+﻿#pragma warning disable 0649
+
+using System;
 using Fusee.Math;
 
 namespace CrossSL.Meta
 {
-    #pragma warning disable 0649
     // ReSharper disable InconsistentNaming
     // ReSharper disable UnusedAutoPropertyAccessor.Local
 
@@ -136,44 +137,98 @@ namespace CrossSL.Meta
 
         #region BUILT-IN CONSTANTS
 
+        [VertexShader, FragmentShader]
         protected int xslMaxVertexUniformComponents { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected int xslMaxFragmentUniformComponents { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected int xslMaxVertexAttribs { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected int xslMaxVaryingFloats { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected int xslMaxDrawBuffers { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected int xslMaxTextureCoords { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected int xslMaxTextureUnits { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected int xslMaxTextureImageUnits { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected int xslMaxVertexTextureImageUnits { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected int xslMaxCombinedTextureImageUnits { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected int xslMaxLights { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected int xslMaxClipPlanes { get; private set; }
 
         #endregion
 
         #region BUILT-IN UNIFORMS
 
+        [VertexShader, FragmentShader]
         protected float4x4 xslModelViewMatrix { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4 xslModelViewProjectionMatrix { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4 xslProjectionMatrix { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4[] xslTextureMatrix { get; private set; }
 
+        [VertexShader, FragmentShader]
         protected float4x4 xslModelViewMatrixInverse { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4 xslModelViewProjectionMatrixInverse { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4 xslProjectionMatrixInverse { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4[] xslTextureMatrixInverse { get; private set; }
 
+        [VertexShader, FragmentShader]
         protected float4x4 xslModelViewMatrixTranspose { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4 xslModelViewProjectionMatrixTranspose { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4 xslProjectionMatrixTranspose { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4[] xslTextureMatrixTranspose { get; private set; }
 
+        [VertexShader, FragmentShader]
         protected float4x4 xslModelViewMatrixInverseTranspose { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4 xslModelViewProjectionMatrixInverseTranspose { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4 xslProjectionMatrixInverseTranspose { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4[] xslTextureMatrixInverseTranspose { get; private set; }
 
+        [VertexShader, FragmentShader]
         protected float4x4 xslNormalMatrix { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4x4 xslNormalScale { get; private set; }
 
         protected struct xslDepthRangeParameters
@@ -183,6 +238,7 @@ namespace CrossSL.Meta
             internal float Diff;
         }
 
+        [VertexShader, FragmentShader]
         protected xslDepthRangeParameters xslDepthRange { get; private set; }
 
         protected struct xslFogParameters
@@ -194,6 +250,7 @@ namespace CrossSL.Meta
             internal float Scale;
         }
 
+        [VertexShader, FragmentShader]
         protected xslFogParameters xslFog { get; private set; }
 
         protected struct xslLightSourceParameters
@@ -212,6 +269,7 @@ namespace CrossSL.Meta
             internal float QuadraticAttenuation;
         }
 
+        [VertexShader, FragmentShader]
         protected xslLightSourceParameters[] xslLightSource { get; private set; }
 
         protected struct xslLightModelParameters
@@ -219,6 +277,7 @@ namespace CrossSL.Meta
             internal float4 Ambient;
         }
 
+        [VertexShader, FragmentShader]
         protected xslLightModelParameters xslLightModel { get; private set; }
 
         protected struct xslLightModelProducts
@@ -226,7 +285,10 @@ namespace CrossSL.Meta
             internal float4 SceneColor;
         }
 
+        [VertexShader, FragmentShader]
         protected xslLightModelProducts xslFrontLightModelProduct { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected xslLightModelProducts xslBackLightModelProduct { get; private set; }
 
         protected struct xslLightProducts
@@ -236,7 +298,10 @@ namespace CrossSL.Meta
             internal float4 Specular;
         }
 
+        [VertexShader, FragmentShader]
         protected xslLightProducts[] xslFrontLightProduct { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected xslLightProducts[] xslBackLightProduct { get; private set; }
 
         protected struct xslMaterialParameters
@@ -248,7 +313,10 @@ namespace CrossSL.Meta
             internal float Shininess;
         }
 
+        [VertexShader, FragmentShader]
         protected xslMaterialParameters xslFrontMaterial { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected xslMaterialParameters xslBackMaterial { get; private set; }
 
         protected struct xslPointParameters
@@ -262,20 +330,37 @@ namespace CrossSL.Meta
             internal float DistanceQuadraticAttenuation;
         }
 
+        [VertexShader, FragmentShader]
         protected xslPointParameters xslPoint { get; private set; }
 
+        [VertexShader, FragmentShader]
         protected float4[] xslTextureEnvColor { get; private set; }
 
+        [VertexShader, FragmentShader]
         protected float4[] xslClipPlane { get; private set; }
 
+        [VertexShader, FragmentShader]
         protected float4[] xslEyePlaneS { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4[] xslEyePlaneT { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4[] xslEyePlaneR { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4[] xslEyePlaneQ { get; private set; }
 
+        [VertexShader, FragmentShader]
         protected float4[] xslObjectPlaneS { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4[] xslObjectPlaneT { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4[] xslObjectPlaneR { get; private set; }
+
+        [VertexShader, FragmentShader]
         protected float4[] xslObjectPlaneQ { get; private set; }
 
         #endregion
@@ -283,5 +368,6 @@ namespace CrossSL.Meta
 
     // ReSharper restore UnusedAutoPropertyAccessor.Local
     // ReSharper restore InconsistentNaming
-    #pragma warning restore 0649
 }
+
+#pragma warning restore 0649

@@ -34,7 +34,7 @@ namespace CrossSL
 
                 default:
                     var major = target/100;
-                    var minor = target - (major * 100);
+                    var minor = target - (major*100);
 
                     return new Version {Major = major, Minor = minor};
             }
