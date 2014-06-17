@@ -7,6 +7,7 @@ using Fusee.Math;
 namespace Example
 {
     [xSLTarget(xSLTarget.GLSLMix.V110)]
+    [xSLDebug(xSLDebug.PreCompile)]
     public class DiffuseShader : xSLShader
     {
         // Vertex Shader
@@ -35,7 +36,7 @@ namespace Example
         [xSLUniform] internal float4x4 FuseeV;
 
         // Vertex Shader
-        protected override void VertexShader()
+        public override void VertexShader()
         {
             var vViewPosTemp = FuseeMV*new float4(FuVertex, 1)*10;
             _vViewPos = new float3(vViewPosTemp)/vViewPosTemp.w;
@@ -76,9 +77,8 @@ namespace Example
             }
         }
 
-        [xSLPrecision(xSLEnvironment.OpenGLES,
-            floatPrecision = xSLPrecision.High)]
-        protected override void FragmentShader()
+        [xSLPrecision(floatPrecision = xSLPrecision.High)]
+        public override void FragmentShader()
         {
             var endIntensity = new float4(0, 0, 0, 0);
 

@@ -7,8 +7,6 @@ using CrossSL.Meta;
 using Mono.Cecil;
 using Mono.Collections.Generic;
 
-using xSLEnvironment = CrossSL.Meta.xSLShader.xSLEnvironment;
-
 namespace CrossSL
 {
     internal abstract class ShaderTranslator
@@ -27,7 +25,7 @@ namespace CrossSL
         {
             switch (target.Envr)
             {
-                case xSLEnvironment.OpenGL:
+                case SLEnvironment.OpenGL:
                     switch ((xSLShader.xSLTarget.GLSL) target.VersionID)
                     {
                         case xSLShader.xSLTarget.GLSL.V110:
@@ -37,10 +35,10 @@ namespace CrossSL
                             return new GLSLTranslator();
                     }
 
-                case xSLEnvironment.OpenGLES:
+                case SLEnvironment.OpenGLES:
                     return new GLSLTranslator100();
 
-                case xSLEnvironment.OpenGLMix:
+                case SLEnvironment.OpenGLMix:
                     return new GLSLTranslatorMix();
             }
 
@@ -258,9 +256,8 @@ namespace CrossSL
         /// <summary>
         ///     Sets the data type precision for the given shader type.
         /// </summary>
-        /// <param name="shaderStr">The shader string.</param>
         /// <param name="shaderType">Type of the shader.</param>
-        protected abstract void SetPrecision(ref StringBuilder shaderStr, SLShaderType shaderType);
+        protected abstract StringBuilder SetPrecision(SLShaderType shaderType);
 
         /// <summary>
         ///     Builds the given type of shader.
@@ -286,17 +283,21 @@ namespace CrossSL
 
             foreach (var memberVar in memberVars)
             {
-                var globVar = ShaderDesc.Variables.First(var => var.Definition == memberVar.Definition);
-                var globIndex = ShaderDesc.Variables.IndexOf(globVar);
+                var globVar = ShaderDesc.Variables.FirstOrDefault(var => var.Definition == memberVar.Definition);
 
-                ShaderDesc.Variables[globIndex].IsReferenced = true;
+                if (globVar != null)
+                {
+                    var globIndex = ShaderDesc.Variables.IndexOf(globVar);
 
-                memberVar.Attribute = globVar.Attribute;
-                memberVar.DataType = globVar.DataType;
-                memberVar.IsArray = globVar.IsArray;
-                memberVar.IsReferenced = true;
+                    ShaderDesc.Variables[globIndex].IsReferenced = true;
 
-                varDescs.Add(memberVar);
+                    memberVar.Attribute = globVar.Attribute;
+                    memberVar.DataType = globVar.DataType;
+                    memberVar.IsArray = globVar.IsArray;
+                    memberVar.IsReferenced = true;
+
+                    varDescs.Add(memberVar);
+                }
             }
 
             // check variables
@@ -304,7 +305,7 @@ namespace CrossSL
             if (DebugLog.Abort) return null;
 
             // add precision to output
-            SetPrecision(ref result, shaderType);
+            result.Append(SetPrecision(shaderType));
             if (DebugLog.Abort) return null;
 
             // add variables to shader output
@@ -331,7 +332,8 @@ namespace CrossSL
                 result.Semicolon().NewLine();
             }
 
-            result.Length -= 2;
+            if (result.Length > 2)
+                result.Length -= 2;
 
             // add all functions to shader output
             foreach (var func in ShaderDesc.Funcs[(int) shaderType])

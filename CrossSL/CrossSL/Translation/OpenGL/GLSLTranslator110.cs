@@ -1,4 +1,6 @@
 ﻿using System.Linq;
+using System.Text;
+using CrossSL.Meta;
 
 namespace CrossSL
 {
@@ -36,6 +38,18 @@ namespace CrossSL
             foreach (var constArray in constArrays)
                 DebugLog.Error("'" + constArray.Definition.Name + "' is a const array. This" +
                                  " is not supported in GLSL 1.1");
+        }
+
+        /// <summary>
+        ///     Adds the data type precision definition to the given shader.
+        /// </summary>
+        /// <param name="shaderType">Type of the shader.</param>
+        protected override StringBuilder SetPrecision(SLShaderType shaderType)
+        {
+            if (ShaderDesc.Precision[(int) shaderType] != null)
+                DebugLog.Warning("Using [xSLPrecision] is not supported in GLSL 1.1. Ignored");
+
+            return new StringBuilder();
         }
     }
 }

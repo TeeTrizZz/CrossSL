@@ -7,8 +7,8 @@ namespace CrossSL.Meta
     public abstract partial class xSLShader
     {
         // SHADER MAIN
-        protected abstract void VertexShader();
-        protected abstract void FragmentShader();
+        public abstract void VertexShader();
+        public abstract void FragmentShader();
 
         // BUILT-IN FUNCTIONS
         [Mapping("texture2D")]

@@ -1,6 +1,5 @@
 ﻿#pragma warning disable 0649
 
-using System;
 using Fusee.Math;
 
 namespace CrossSL.Meta
@@ -223,7 +222,7 @@ namespace CrossSL.Meta
         [VertexShader, FragmentShader]
         protected xslDepthRangeParameters xslDepthRange { get; private set; }
 
-        protected struct xslFogParameters
+        protected class xslFogParameters
         {
             internal float4 Color;
             internal float Density;
@@ -235,7 +234,7 @@ namespace CrossSL.Meta
         [VertexShader, FragmentShader]
         protected xslFogParameters xslFog { get; private set; }
 
-        protected struct xslLightSourceParameters
+        protected class xslLightSourceParameters
         {
             internal float4 Ambient;
             internal float4 Diffuse;
@@ -254,7 +253,7 @@ namespace CrossSL.Meta
         [VertexShader, FragmentShader]
         protected xslLightSourceParameters[] xslLightSource { get; private set; }
 
-        protected struct xslLightModelParameters
+        protected class xslLightModelParameters
         {
             internal float4 Ambient;
         }
@@ -262,7 +261,7 @@ namespace CrossSL.Meta
         [VertexShader, FragmentShader]
         protected xslLightModelParameters xslLightModel { get; private set; }
 
-        protected struct xslLightModelProducts
+        protected class xslLightModelProducts
         {
             internal float4 SceneColor;
         }
@@ -273,7 +272,7 @@ namespace CrossSL.Meta
         [VertexShader, FragmentShader]
         protected xslLightModelProducts xslBackLightModelProduct { get; private set; }
 
-        protected struct xslLightProducts
+        protected class xslLightProducts
         {
             internal float4 Ambient;
             internal float4 Diffuse;
@@ -286,7 +285,7 @@ namespace CrossSL.Meta
         [VertexShader, FragmentShader]
         protected xslLightProducts[] xslBackLightProduct { get; private set; }
 
-        protected struct xslMaterialParameters
+        protected class xslMaterialParameters
         {
             internal float4 Emission;
             internal float4 Ambient;

@@ -56,7 +56,7 @@ namespace CrossSL
                 {
                     var instr = GetInstructionFromStmt(objCreateExpr.GetParent<Statement>());
                     DebugLog.Warning("Matrix casting (float4x4 to float3x3) is not supported " +
-                                       " in GLSL 1.1. Expression has been converted automatically", instr);
+                                       "in GLSL 1.1. Expression has been converted automatically", instr);
 
                     var argName = objCreateExpr.Arguments.First().AcceptVisitor(this);
 

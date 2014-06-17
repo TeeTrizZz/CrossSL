@@ -4,9 +4,6 @@ using System.Linq;
 using System.Text;
 using Mono.Cecil;
 
-using xSLEnvironment = CrossSL.Meta.xSLShader.xSLEnvironment;
-using xSLPrecision = CrossSL.Meta.xSLShader.xSLPrecision;
-
 namespace CrossSL
 {
     internal class GLSLTranslator : ShaderTranslator
@@ -32,66 +29,13 @@ namespace CrossSL
         }
 
         /// <summary>
-        ///     Sets the default data type precision definition.
-        /// </summary>
-        /// <returns>
-        ///     A <see cref="StringBuilder" /> for the default precision definition.
-        /// </returns>
-        protected virtual StringBuilder SetDefaultPrecision()
-        {
-            // no default needed
-            return new StringBuilder();
-        }
-
-        /// <summary>
         ///     Adds the data type precision definition to the given shader.
         /// </summary>
-        /// <param name="shaderStr">The shader string.</param>
         /// <param name="shaderType">Type of the shader.</param>
-        protected override void SetPrecision(ref StringBuilder shaderStr, SLShaderType shaderType)
+        protected override StringBuilder SetPrecision(SLShaderType shaderType)
         {
-            var defaultPrec = true;
-
-            if (ShaderDesc.Precision[(int) shaderType] != null)
-            {
-                var prec = new StringBuilder();
-                var precAttr = ShaderDesc.Precision[(int) shaderType];
-
-                var floatPrec = precAttr.Properties.FirstOrDefault(prop => prop.Name == "floatPrecision");
-                var intPrec = precAttr.Properties.FirstOrDefault(prop => prop.Name == "intPrecision");
-
-                if (floatPrec.Name != null)
-                {
-                    var floatPrecVal = ((xSLPrecision) floatPrec.Argument.Value).ToString();
-                    prec.Append("precision ").Append(floatPrecVal.ToLower()).Append("p");
-                    prec.Append(" float;").NewLine();
-
-                    defaultPrec = false;
-                }
-
-                if (intPrec.Name != null)
-                {
-                    var intPrecVal = ((xSLPrecision) intPrec.Argument.Value).ToString();
-                    prec.Append("precision ").Append(intPrecVal.ToLower()).Append("p");
-                    prec.Append(" int;").NewLine();
-                }
-
-                if (precAttr.ConstructorArguments.Count > 0)
-                {
-                    var condition = (xSLEnvironment) precAttr.ConstructorArguments[0].Value;
-                    var ifdef = (condition == xSLEnvironment.OpenGL) ? "#ifndef" : "#ifdef";
-
-                    prec.Replace(Environment.NewLine, Environment.NewLine + "\t").Length--;
-                    prec = new StringBuilder(ifdef).Append(" GL_ES").NewLine().Intend().Append(prec);
-                    prec.Append("#endif").NewLine();
-                }
-
-                shaderStr.Append(prec.Replace("medium", "med").NewLine());
-            }
-
-            // default precision
-            if (defaultPrec && shaderType == SLShaderType.FragmentShader)
-                shaderStr.Append(SetDefaultPrecision());
+            // depending on target
+            return new StringBuilder();
         }
 
         /// <summary>
@@ -103,10 +47,10 @@ namespace CrossSL
         {
             if (GLSLCompiler.CanCheck(ShaderDesc.Target.Version))
             {
-                if (ShaderDesc.Target.Envr == xSLEnvironment.OpenGLES)
+                if (ShaderDesc.Target.Envr == SLEnvironment.OpenGLES)
                     DebugLog.Warning("Shader will be tested on OpenGL but target is OpenGL ES");
 
-                if (ShaderDesc.Target.Envr == xSLEnvironment.OpenGLMix)
+                if (ShaderDesc.Target.Envr == SLEnvironment.OpenGLMix)
                     DebugLog.Warning("Shader will be tested on OpenGL but target is OpenGL and OpenGL ES");
 
                 var vertTest = GLSLCompiler.CreateShader(vertexShader, SLShaderType.VertexShader);

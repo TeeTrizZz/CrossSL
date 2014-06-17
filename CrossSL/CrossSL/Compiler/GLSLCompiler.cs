@@ -51,7 +51,10 @@ namespace CrossSL
             _window = new GameWindow(1, 1, GraphicsMode.Default, "CrossSL", GameWindowFlags.Default,
                 DisplayDevice.Default, mapped.Major, mapped.Minor, GraphicsContextFlags.Default);
 
-            var gcard = GL.GetString(StringName.Version);
+            var gcard = GL.GetString(StringName.ShadingLanguageVersion);
+            if (gcard.Length > 4)
+                gcard = gcard.Remove(4);
+
             var supV = Int32.Parse(gcard.Replace(".", String.Empty));
 
             return supV >= target;
@@ -71,7 +74,7 @@ namespace CrossSL
             string info;
             GL.GetShaderInfoLog(shaderObj, out info);
 
-            if (info.Length > 0)
+            if (info.Length > 0 && info != "No errors.\n")
                 result.Append(info).NewLine();
 
             return result;

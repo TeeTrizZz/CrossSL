@@ -5,7 +5,7 @@ using Fusee.Math;
 namespace Example
 {
     [xSLTarget(xSLTarget.GLSLMix.V110)]
-    [xSLDebug(xSLDebug.PreCompile | xSLDebug.SaveToFile)]
+    [xSLDebug(xSLDebug.IgnoreShader | xSLDebug.PreCompile | xSLDebug.SaveToFile)]
     public class ComplexShader : xSLShader
     {
         [xSLUniform] private float water_dist;
@@ -23,7 +23,7 @@ namespace Example
             0.0402f, 0.0623f, 0.0877f, 0.1120f, 0.1297f, 0.1362f, 0.1297f, 0.1120f, 0.0877f, 0.0623f, 0.0402f
         };
 
-        protected override void VertexShader()
+        public override void VertexShader()
         {
             for (int x = 0; x < 10; x++)
                 texcoord = xslMultiTexCoord0;
@@ -32,7 +32,7 @@ namespace Example
             var z = MathHelper.Sin(10f*5f*3f);
         }
 
-        protected override void FragmentShader()
+        public override void FragmentShader()
         {
             var water_color = new float3(0.0f, 0.4f, 0.2f); //0.22,0.2 (now uniform through config)
             float in_water; //'boolean'

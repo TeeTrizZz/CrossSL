@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace CrossSL.Meta
+﻿namespace CrossSL.Meta
 {
     // ReSharper disable InconsistentNaming
     // ReSharper disable UnusedParameter.Local

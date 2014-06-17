@@ -6,14 +6,7 @@ namespace CrossSL.Meta
 
     public abstract partial class xSLShader
     {
-        protected enum xSLEnvironment
-        {
-            OpenGL,
-            OpenGLES,
-            OpenGLMix
-        }
-
-        protected static class xSLTarget
+        protected internal static class xSLTarget
         {
             public enum GLSL
             {
@@ -41,7 +34,7 @@ namespace CrossSL.Meta
         }
 
         [Flags]
-        protected enum xSLDebug
+        protected internal enum xSLDebug
         {
             None = 0,
             IgnoreShader = 1,
@@ -50,13 +43,13 @@ namespace CrossSL.Meta
             ThrowException = 8
         }
 
-        protected enum xSLPrecision
+        protected internal enum xSLPrecision
         {
             Low,
             Medium,
             High
         }
     }
-    
+
     // ReSharper restore InconsistentNaming
 }

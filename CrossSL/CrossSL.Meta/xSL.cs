@@ -29,7 +29,9 @@ namespace CrossSL.Meta
                 }";
 
             _fragment = @"
-                precision float highp;
+                #ifdef GL_ES
+                    precision float highp;
+                #endif
 
                 void main()
                 {

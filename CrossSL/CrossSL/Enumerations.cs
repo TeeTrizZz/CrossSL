@@ -8,6 +8,13 @@
         FragmentShader
     }
 
+    internal enum SLEnvironment
+    {
+        OpenGL,
+        OpenGLES,
+        OpenGLMix
+    }
+
     internal static class SLVersion
     {
         internal static string[][] VIDs =

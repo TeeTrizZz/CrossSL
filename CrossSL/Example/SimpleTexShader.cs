@@ -7,7 +7,7 @@ using Fusee.Math;
 namespace Example
 {
     [xSLTarget(xSLTarget.GLSLMix.V110)]
-    [xSLDebug(xSLDebug.PreCompile | xSLDebug.SaveToFile)]
+    //[xSLDebug(xSLDebug.PreCompile | xSLDebug.SaveToFile)]
     public class SimpleTexShader : xSLShader
     {
         [xSLAttribute] internal float3 FuVertex;
@@ -22,9 +22,8 @@ namespace Example
 
         [xSLUniform] private sampler2D _texture1;
 
-        [xSLPrecision(xSLEnvironment.OpenGLES,
-            floatPrecision = xSLPrecision.Medium)]
-        protected override void VertexShader()
+        [xSLPrecision(floatPrecision = xSLPrecision.Medium)]
+        public override void VertexShader()
         {
             _vUV = FuUV;
             _vNormal = new float3x3(FuseeITMV)*FuNormal;
@@ -32,9 +31,8 @@ namespace Example
             xslPosition = FuseeMVP*new float4(FuVertex, 1.0f);
         }
 
-        [xSLPrecision(xSLEnvironment.OpenGLES,
-            floatPrecision = xSLPrecision.Medium)]
-        protected override void FragmentShader()
+        [xSLPrecision(floatPrecision = xSLPrecision.Medium)]
+        public override void FragmentShader()
         {
             var value = Math.Max(float3.Dot(new float3(0, 0, 1), float3.Normalize(_vNormal)), 0.2f);
             xslFragColor = value*Texture2D(_texture1, _vUV);

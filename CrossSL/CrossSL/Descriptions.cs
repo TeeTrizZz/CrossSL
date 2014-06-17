@@ -18,7 +18,7 @@ namespace CrossSL
 
     internal sealed class ShaderTarget
     {
-        internal xSLShader.xSLEnvironment Envr;
+        internal SLEnvironment Envr;
         internal int VersionID;
         internal int Version;
     }

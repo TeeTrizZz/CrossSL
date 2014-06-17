@@ -13,7 +13,6 @@ using xSLDebug = CrossSL.Meta.xSLShader.xSLDebug;
 using xSLDebugAttribute = CrossSL.Meta.xSLShader.xSLDebugAttribute;
 using xSLTargetAttribute = CrossSL.Meta.xSLShader.xSLTargetAttribute;
 using xSLPrecisionAttribute = CrossSL.Meta.xSLShader.xSLPrecisionAttribute;
-using xSLEnvironment = CrossSL.Meta.xSLShader.xSLEnvironment;
 
 namespace CrossSL
 {
@@ -48,6 +47,8 @@ namespace CrossSL
 
             args = new string[1];
             args[0] = @"E:\Dropbox\HS Furtwangen\7. Semester\Thesis\dev\CrossSL\Example\bin\Debug\Example.exe";
+            //args[0] = @"C:\Users\Fabian\Dropbox\HS Furtwangen\7. Semester\Thesis\dev\CrossSL\Example\bin\Debug\Example.exe";
+            //args[0] = @"E:\Dropbox\HS Furtwangen\7. Semester\Thesis\Präsentation\dev\Bin\Debug\Examples\Simple\Examples.Simple.exe";
 
             if (args.Length == 0 || String.IsNullOrEmpty(args[0]))
             {
@@ -89,7 +90,10 @@ namespace CrossSL
                 : "Found no .pdb file '" + debugName + "'. Extended debugging has been disabled.");
 
             // read assembly (and symbols) with Mono.Cecil
-            var readParams = new ReaderParameters {ReadSymbols = DebugLog.Verbose};
+            var resolver = new DefaultAssemblyResolver();
+            resolver.AddSearchDirectory(asmDir);
+
+            var readParams = new ReaderParameters {ReadSymbols = DebugLog.Verbose, AssemblyResolver = resolver};
             var asm = AssemblyDefinition.ReadAssembly(inputPath, readParams);
 
             // read meta assembly (without symbols) with Mono.Cecil
@@ -142,7 +146,7 @@ namespace CrossSL
 
                 if (targetAttr == null)
                 {
-                    shaderDesc.Target = new ShaderTarget {Envr = xSLEnvironment.OpenGL, Version = 110, VersionID = 0};
+                    shaderDesc.Target = new ShaderTarget {Envr = SLEnvironment.OpenGL, Version = 110, VersionID = 0};
                     DebugLog.Error("Could not find [xSLTarget]. Please specify the targeted shading language");
                 }
                 else
@@ -155,15 +159,15 @@ namespace CrossSL
                     switch (typeName)
                     {
                         case "GLSL":
-                            shaderTarget.Envr = xSLEnvironment.OpenGL;
+                            shaderTarget.Envr = SLEnvironment.OpenGL;
                             break;
 
                         case "GLSLES":
-                            shaderTarget.Envr = xSLEnvironment.OpenGLES;
+                            shaderTarget.Envr = SLEnvironment.OpenGLES;
                             break;
 
                         case "GLSLMix":
-                            shaderTarget.Envr = xSLEnvironment.OpenGLMix;
+                            shaderTarget.Envr = SLEnvironment.OpenGLMix;
                             break;
                     }
 
@@ -172,7 +176,7 @@ namespace CrossSL
                     shaderTarget.Version = Int32.Parse(vStr);
                     shaderDesc.Target = shaderTarget;
 
-                    if (shaderTarget.Envr == xSLEnvironment.OpenGLMix)
+                    if (shaderTarget.Envr == SLEnvironment.OpenGLMix)
                     {
                         typeName = "GLSL 1.10 & GLSLES";
                         vStr = "100";
@@ -313,7 +317,7 @@ namespace CrossSL
                 shaderTranslator.PreVariableCheck();
 
                 // translate main, depending methods and constructors
-                if (shaderDesc.Target.Envr == xSLEnvironment.OpenGLMix)
+                if (shaderDesc.Target.Envr == SLEnvironment.OpenGLMix)
                     Console.WriteLine("\n  3. Translating shader from C# to GLSL/GLSLES.");
                 else
                     Console.WriteLine("\n  3. Translating shader from C# to " + shaderDesc.Target.Envr + ".");

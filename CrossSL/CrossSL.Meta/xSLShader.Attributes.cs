@@ -10,51 +10,41 @@ namespace CrossSL.Meta
     {
         [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,
             AllowMultiple = false)]
-        public sealed class xSLAttributeAttribute : Attribute
+        protected sealed class xSLAttributeAttribute : Attribute
         {
             // dummy implementation
         }
 
         [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,
             AllowMultiple = false)]
-        public sealed class xSLVaryingAttribute : Attribute
+        protected sealed class xSLVaryingAttribute : Attribute
         {
             // dummy implementation
         }
 
         [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,
             AllowMultiple = false)]
-        public sealed class xSLUniformAttribute : Attribute
+        protected sealed class xSLUniformAttribute : Attribute
         {
             // dummy implementation
         }
 
         [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property,
             AllowMultiple = false)]
-        public sealed class xSLConstAttribute : Attribute
+        protected sealed class xSLConstAttribute : Attribute
         {
             // dummy implementation
         }
 
-        [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-        protected sealed class xSLPrecisionAttribute : Attribute
+        [AttributeUsage(AttributeTargets.Method)]
+        protected internal sealed class xSLPrecisionAttribute : Attribute
         {
-            public xSLPrecisionAttribute()
-            {
-                // dummy constructor
-            }
-
-            public xSLPrecisionAttribute(xSLEnvironment condition)
-            {
-                // dummy constructor
-            }
-
             public xSLPrecision floatPrecision { get; set; }
             public xSLPrecision intPrecision { get; set; }
         }
 
         [AttributeUsage(AttributeTargets.Class)]
-        protected sealed class xSLTargetAttribute : Attribute
+        protected internal sealed class xSLTargetAttribute : Attribute
         {
             public xSLTargetAttribute(xSLTarget.GLSL version)
             {
@@ -73,7 +63,7 @@ namespace CrossSL.Meta
         }
 
         [AttributeUsage(AttributeTargets.Class)]
-        protected sealed class xSLDebugAttribute : Attribute
+        protected internal sealed class xSLDebugAttribute : Attribute
         {
             public xSLDebugAttribute(xSLDebug setting)
             {
@@ -82,25 +72,25 @@ namespace CrossSL.Meta
         }
 
         [AttributeUsage(AttributeTargets.Property)]
-        private sealed class VertexShaderAttribute : Attribute
+        internal sealed class VertexShaderAttribute : Attribute
         {
             // dummy implementation
         }
 
         [AttributeUsage(AttributeTargets.Property)]
-        private sealed class FragmentShaderAttribute : Attribute
+        internal sealed class FragmentShaderAttribute : Attribute
         {
             // dummy implementation
         }
 
         [AttributeUsage(AttributeTargets.Property)]
-        private sealed class MandatoryAttribute : Attribute
+        internal sealed class MandatoryAttribute : Attribute
         {
             // dummy implementation
         }
 
         [AttributeUsage(AttributeTargets.Struct | AttributeTargets.Method)]
-        private sealed class MappingAttribute : Attribute
+        internal sealed class MappingAttribute : Attribute
         {
             public MappingAttribute(string GLSL)
             {
